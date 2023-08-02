@@ -10,3 +10,9 @@ This is what the README will look like. Imagine how cool it will be at the end
 
 - can even try deployment through FastAPI
 - send project plan to JAmie and other data scientists when it's got progress
+
+
+-----
+## URLs for APIs:
+- https://www.gaugemap.co.uk/
+-  weather API hasn't been chosen yet
