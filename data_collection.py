@@ -1,6 +1,7 @@
 import pandas as pd
 import json
 import requests
+import os
 
 headers = {
     "Accept": "application/json, text/javascript, */*; q=0.01",
@@ -49,9 +50,7 @@ def get_top_level_info_river_gauges(
 # next : pull river data from the IDs listed in the result (as above)
 
 
-def fetch_and_save_river_data(
-    station_ids, start_date, end_date, smoothing=2, headers=None
-):
+def fetch_and_save_river_data(station_ids, start_date, end_date, smoothing=2):
     """
     Fetch river gauge measurements and save them to individual CSV files.
 
@@ -60,12 +59,24 @@ def fetch_and_save_river_data(
     start_date (str): The start date in ISO 8601 format (e.g., '2013-04-30T23:00:00').
     end_date (str): The end date in ISO 8601 format (e.g., '2023-08-31T22:59:59').
     smoothing (int, optional): Smoothing parameter for the API. Default is 2.
-    headers (dict, optional): HTTP headers to send with the requests.
 
     Returns:
     None
     """
     base_url = "https://riverlevelsapi.azurewebsites.net/TimeSeries/GetTimeSeriesDatapointsDateTime/?stationId={station_id}&dataType=3&endTime={end_time}&startTime={start_time}&smoothing={smoothing}"
+
+    headers = {
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Origin": "https://www.gaugemap.co.uk",
+        "Referer": "https://www.gaugemap.co.uk/",
+        "SessionHeaderId": "03173723-4dea-4c81-8d8e-5c808698384b",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+    }
+
+    # Ensure the directory exists where files will be saved
+    directory = "get_river_data/data"
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
     for station_id in station_ids:
         formatted_url = base_url.format(
@@ -78,14 +89,17 @@ def fetch_and_save_river_data(
         if response.status_code == 200:
             data = json.loads(response.text)
             df = pd.json_normalize(data)  # create DataFrame from JSON
-            df.to_csv(
-                f"station_{station_id}.csv", index=False, path="get_river_data/data"
-            )  # save DataFrame to a CSV file
-            print(f"Data for station {station_id} saved successfully.")
+            # Correct the file saving path
+            file_path = os.path.join(directory, f"station_{station_id}.csv")
+            df.to_csv(file_path, index=False)
+            print(f"Data for station {station_id} saved successfully in {file_path}.")
         else:
             print(
                 f"Request failed for station {station_id}, status code: {response.status_code}"
             )
+
+
+# NOTE : add functions for weather data, so far I've used meteostat
 
 
 if __name__ == "__main__":
