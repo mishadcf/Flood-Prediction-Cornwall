@@ -2,12 +2,14 @@ import pandas as pd
 import json
 import requests
 import os
+from meteostat import Hourly, Daily, Stations
+from datetime import datetime
 
 headers = {
     "Accept": "application/json, text/javascript, */*; q=0.01",
     "Origin": "https://www.gaugemap.co.uk",
     "Referer": "https://www.gaugemap.co.uk/",
-    "SessionHeaderId": "03173723-4dea-4c81-8d8e-5c808698384b",  # Need to rotate session/ user-agent headers
+    "SessionHeaderId": "03173723-4dea-4c81-8d8e-5c808698384b",  # May Need to rotate session/ user-agent headers
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
 }
 
@@ -94,13 +96,69 @@ def fetch_and_save_river_data(station_ids, start_date, end_date, smoothing=2):
             df.to_csv(file_path, index=False)
             print(f"Data for station {station_id} saved successfully in {file_path}.")
         else:
-            print(
-                f"Request failed for station {station_id}, status code: {response.status_code}"
-            )
+            print("ERROR")
 
 
-# NOTE : add functions for weather data, so far I've used meteostat
+from meteostat import Stations
 
 
-if __name__ == "__main__":
-    pass
+def get_weather_station_info(coords=None):
+    """
+    Fetches information about the 10 nearest weather stations to the specified coordinates.
+    If no coordinates are provided, defaults to the coordinates for Cornwall - this is what we're modelling.
+
+    Parameters:
+    coords (tuple, optional): A tuple containing the latitude (float) and longitude (float) of the desired location.
+
+    Returns:
+    DataFrame: A DataFrame containing information about each of the 10 closest weather stations.
+    """
+    # Default coordinates to Cornwall if none provided
+    if coords is None:
+        coords = (50.2660, -5.0527)  # Latitude and Longitude of Cornwall
+    elif not isinstance(coords, tuple) or len(coords) != 2:
+        raise ValueError(
+            "Coordinates must be provided as a tuple of (latitude, longitude)."
+        )
+
+    stations = Stations()
+    nearby_stations = stations.nearby(lat=coords[0], lon=coords[1])
+
+    try:
+        station_info = nearby_stations.fetch(10)
+        return station_info
+    except Exception as e:
+        print(f"Failed to pull data: {e}")
+        return None
+
+
+from datetime import datetime
+from meteostat import Hourly, Daily, Monthly  # Assuming these are the classes you need
+
+
+def fetch_weather_data(station_id: str, dates: tuple = None, granularity_class=Hourly):
+    """
+    Fetches weather data for a specified station ID within a given date range with specified granularity.
+
+    Parameters:
+        station_id (str): Unique identifier of the weather station.
+        dates (tuple, optional): Tuple containing start and end datetime objects.
+                                 If no dates are provided, it defaults from March 4, 2014, at 6:15 AM to today.
+        granularity_class: Class used to fetch weather data (e.g., Hourly, Daily, Monthly).
+                           Defaults to Hourly.
+
+    Returns:
+        DataFrame: Weather data for the specified station ID and dates, or None if an error occurs.
+    """
+    # Default date range set if no dates are provided
+    if dates is None:
+        dates = (datetime(2000, 3, 4, 6, 15, 0), datetime.today())
+
+    try:
+        # Initialize the granularity class with the specified parameters
+        weather_data = granularity_class(station_id, start=dates[0], end=dates[1])
+        fetched_data = weather_data.fetch()
+        return fetched_data
+    except Exception as e:
+        print(f"Failed to fetch data: {e}")
+        return None
