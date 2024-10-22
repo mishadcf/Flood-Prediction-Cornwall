@@ -130,9 +130,6 @@ def get_weather_station_info_meteostat(coords=None):
         return None
 
 
-from datetime import datetime
-from meteostat import Hourly, Daily, Monthly  # Assuming these are the classes you need
-
 
 def fetch_weather_data_meteostat(station_id: str, dates: tuple = None, granularity_class=Hourly):
     """
@@ -196,20 +193,20 @@ def fetch_weather_data_over_years(station_id, start_year, end_year, token, datat
     
     return all_data
 
-# Example usage
-api_key = "12345"  # Replace with your NOAA API key
-station_id = "UK000003808"  # Cornwall station ID
-start_year = 2013
-end_year = 2023
-datatypes = ["PRCP", "TMAX", "TMIN", "AWND", "WSF2"]  # Add more data types if needed
+# # Example usage
+# api_key = "12345"  # Replace with your NOAA API key
+# station_id = "UK000003808"  # Cornwall station ID
+# start_year = 2013
+# end_year = 2023
+# datatypes = ["PRCP", "TMAX", "TMIN", "AWND", "WSF2"]  # Add more data types if needed
 
-# Fetch data across multiple years
-all_weather_data = fetch_weather_data_over_years(station_id, start_year, end_year, api_key, datatypes)
+# # Fetch data across multiple years
+# all_weather_data = fetch_weather_data_over_years(station_id, start_year, end_year, api_key, datatypes)
 
-# Convert the results into a DataFrame for easier analysis
-if all_weather_data:
-    df = pd.DataFrame(all_weather_data)
-    print(df.head())
+# # Convert the results into a DataFrame for easier analysis
+# if all_weather_data:
+#     df = pd.DataFrame(all_weather_data)
+#     print(df.head())
 
 #TODO: split weather and river data functions into classes, allowing for options with different weather servies and perhaps river gauge services. 
 
