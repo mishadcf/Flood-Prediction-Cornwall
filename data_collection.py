@@ -2,7 +2,7 @@ import pandas as pd
 import json
 import requests
 import os
-from meteostat import Hourly, Daily, Stations
+from meteostat import Hourly, Daily, Monthly, Stations
 from datetime import datetime
 
 headers = {
@@ -99,10 +99,8 @@ def fetch_and_save_river_data(station_ids, start_date, end_date, smoothing=2):
             print("ERROR")
 
 
-from meteostat import Stations
 
-
-def get_weather_station_info(coords=None):
+def get_weather_station_info_meteostat(coords=None):
     """
     Fetches information about the 10 nearest weather stations to the specified coordinates.
     If no coordinates are provided, defaults to the coordinates for Cornwall - this is what we're modelling.
@@ -136,7 +134,7 @@ from datetime import datetime
 from meteostat import Hourly, Daily, Monthly  # Assuming these are the classes you need
 
 
-def fetch_weather_data(station_id: str, dates: tuple = None, granularity_class=Hourly):
+def fetch_weather_data_meteostat(station_id: str, dates: tuple = None, granularity_class=Hourly):
     """
     Fetches weather data for a specified station ID within a given date range with specified granularity.
 
@@ -162,3 +160,56 @@ def fetch_weather_data(station_id: str, dates: tuple = None, granularity_class=H
     except Exception as e:
         print(f"Failed to fetch data: {e}")
         return None
+
+
+def pull_noaa_weather_data(station_id, start_date, end_date, token, datatypes):
+    url = "https://www.ncdc.noaa.gov/cdo-web/api/v2/data"
+    params = {
+        "datasetid": "GHCND",
+        "stationid": f"GHCND:{station_id}",
+        "startdate": start_date,
+        "enddate": end_date,
+        "limit": 1000,
+        "datatypeid": datatypes,  # Pass a list of datatype IDs
+        "units": "metric"
+    }
+    headers = {"token": token}
+
+    response = requests.get(url, headers=headers, params=params)
+
+    if response.status_code == 200:
+        return response.json()  # Returns JSON data
+    else:
+        print(f"Error: {response.status_code}")
+        return None
+
+def fetch_weather_data_over_years(station_id, start_year, end_year, token, datatypes):
+    all_data = []
+    for year in range(start_year, end_year + 1):
+        start_date = f"{year}-01-01"
+        end_date = f"{year}-12-31"
+        print(f"Fetching data for {year}...")
+        weather_data = pull_noaa_weather_data(station_id, start_date, end_date, token, datatypes)
+        
+        if weather_data and 'results' in weather_data:
+            all_data.extend(weather_data['results'])  # Combine the yearly data
+    
+    return all_data
+
+# Example usage
+api_key = "12345"  # Replace with your NOAA API key
+station_id = "UK000003808"  # Cornwall station ID
+start_year = 2013
+end_year = 2023
+datatypes = ["PRCP", "TMAX", "TMIN", "AWND", "WSF2"]  # Add more data types if needed
+
+# Fetch data across multiple years
+all_weather_data = fetch_weather_data_over_years(station_id, start_year, end_year, api_key, datatypes)
+
+# Convert the results into a DataFrame for easier analysis
+if all_weather_data:
+    df = pd.DataFrame(all_weather_data)
+    print(df.head())
+
+#TODO: split weather and river data functions into classes, allowing for options with different weather servies and perhaps river gauge services. 
+
