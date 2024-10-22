@@ -68,7 +68,7 @@ def concat_all_river_gauges(river_directory="get_river_data/data"):
 
 
 def check_missing_days_in_csv(file_path):
-    """Check a single CSV for missing days in the river gauge data."""
+    """Check a single CSV for missing days in the river gauge data and calculate the percentage of missing days."""
     # Read the CSV file
     river_data = pd.read_csv(file_path)
     
@@ -81,19 +81,26 @@ def check_missing_days_in_csv(file_path):
     # Find missing days
     missing_days = river_data_daily[river_data_daily.isnull().any(axis=1)].index
     
-    return missing_days
+    # Calculate total number of days and percentage of missing days
+    total_days = len(river_data_daily)
+    missing_percentage = (len(missing_days) / total_days) * 100 if total_days > 0 else 0
+    
+    return missing_days, missing_percentage
 
 def check_missing_days_in_directory(directory):
-    """Check all CSV files in a directory for missing days."""
+    """Check all CSV files in a directory for missing days and calculate their percentages."""
     csv_files = [f for f in os.listdir(directory) if f.endswith('.csv')]
     files_with_missing_days = {}
     
     for file_name in csv_files:
         file_path = os.path.join(directory, file_name)
-        missing_days = check_missing_days_in_csv(file_path)
+        missing_days, missing_percentage = check_missing_days_in_csv(file_path)
         
         if len(missing_days) > 0:
-            files_with_missing_days[file_name] = len(missing_days)
+            files_with_missing_days[file_name] = {
+                'num_missing_days': len(missing_days),
+                'missing_percentage': missing_percentage
+            }
     
     return files_with_missing_days
 
@@ -101,9 +108,9 @@ def check_missing_days_in_directory(directory):
 directory_path = 'get_river_data/data'  # Replace with your actual directory path
 files_with_gaps = check_missing_days_in_directory(directory_path)
 
-# Print the files that have missing days
+# Print the files that have missing days along with the percentages
 if files_with_gaps:
-    for file_name, num_missing_days in files_with_gaps.items():
-        print(f"{file_name} has {num_missing_days} missing days.")
+    for file_name, info in files_with_gaps.items():
+        print(f"{file_name} has {info['num_missing_days']} missing days ({info['missing_percentage']:.2f}%).")
 else:
     print("No missing days in any files.")
