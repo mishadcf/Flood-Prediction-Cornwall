@@ -64,3 +64,46 @@ def concat_all_river_gauges(river_directory="get_river_data/data"):
         result_df = pd.DataFrame()  # Return an empty DataFrame if no CSV files found
 
     return result_df
+
+
+
+def check_missing_days_in_csv(file_path):
+    """Check a single CSV for missing days in the river gauge data."""
+    # Read the CSV file
+    river_data = pd.read_csv(file_path)
+    
+    # Convert the 'time' column to datetime (adjust column name if needed)
+    river_data['time'] = pd.to_datetime(river_data['time'])
+    
+    # Resample the data to daily frequency
+    river_data_daily = river_data.set_index('time').resample('D').asfreq()
+    
+    # Find missing days
+    missing_days = river_data_daily[river_data_daily.isnull().any(axis=1)].index
+    
+    return missing_days
+
+def check_missing_days_in_directory(directory):
+    """Check all CSV files in a directory for missing days."""
+    csv_files = [f for f in os.listdir(directory) if f.endswith('.csv')]
+    files_with_missing_days = {}
+    
+    for file_name in csv_files:
+        file_path = os.path.join(directory, file_name)
+        missing_days = check_missing_days_in_csv(file_path)
+        
+        if len(missing_days) > 0:
+            files_with_missing_days[file_name] = len(missing_days)
+    
+    return files_with_missing_days
+
+# Example usage
+directory_path = 'get_river_data/data'  # Replace with your actual directory path
+files_with_gaps = check_missing_days_in_directory(directory_path)
+
+# Print the files that have missing days
+if files_with_gaps:
+    for file_name, num_missing_days in files_with_gaps.items():
+        print(f"{file_name} has {num_missing_days} missing days.")
+else:
+    print("No missing days in any files.")
