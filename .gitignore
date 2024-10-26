@@ -1,10 +1,13 @@
+# Ignore Mac and Python cache files
 .DS_Store
 __pycache__/
 .ipynb_checkpoints/
 *.log
+
 # Ignore everything in the data folder
 data/*
 
-# But keep the placeholder file
-!data/.gitkeep
+# But keep the placeholder file in data folder
+!data/river_data/.gitkeep
+!data/weather_data/.gitkeep
 
