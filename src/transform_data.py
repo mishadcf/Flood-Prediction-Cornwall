@@ -105,12 +105,12 @@ def check_missing_days_in_directory(directory):
     return files_with_missing_days
 
 # Example usage
-directory_path = 'get_river_data/data'  # Replace with your actual directory path
-files_with_gaps = check_missing_days_in_directory(directory_path)
+# directory_path = 'get_river_data/data'  # Replace with your actual directory path
+# files_with_gaps = check_missing_days_in_directory(directory_path)
 
-# Print the files that have missing days along with the percentages
-if files_with_gaps:
-    for file_name, info in files_with_gaps.items():
-        print(f"{file_name} has {info['num_missing_days']} missing days ({info['missing_percentage']:.2f}%).")
-else:
-    print("No missing days in any files.")
+# # Print the files that have missing days along with the percentages
+# if files_with_gaps:
+#     for file_name, info in files_with_gaps.items():
+#         print(f"{file_name} has {info['num_missing_days']} missing days ({info['missing_percentage']:.2f}%).")
+# else:
+#     print("No missing days in any files.")
