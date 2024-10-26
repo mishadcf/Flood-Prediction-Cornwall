@@ -1,6 +1,6 @@
 # Flood Prediction System for Cornwall, UK
 
-Welcome to the **Flood Prediction System for Cornwall, UK** – an ambitious, real-time flood prediction project aimed at providing actionable flood risk insights for a region prone to flooding. This system is designed to ingest river gauge and weather data, process and clean it, model flood risks, and ultimately deploy an interactive flood prediction service.
+Welcome to the **Flood Prediction System for Cornwall, UK** – a real-time flood prediction project aimed at providing actionable flood risk insights for a region prone to flooding. This system is designed to ingest river gauge and weather data, process and clean it, model flood risks, and ultimately deploy an interactive flood prediction service.
 
 ---
 
@@ -53,6 +53,18 @@ Follow my journey on LinkedIn, where I’ll be posting regular updates and video
 
 ## Repository Structure 📁
 
+Here’s an overview of the project’s file structure:
+```
+.
+├── assets
+├── data
+│   ├── river_data
+│   └── weather_data
+├── notebooks
+├── src
+└── tests
+
+```
 - **`data/`**: Contains the cleaned CSV files of river gauge and weather data.
 - **`src/`**: Python scripts for data ingestion, cleaning, and initial EDA.
 - **`notebooks/`**: Jupyter notebooks documenting EDA, modeling, and feature engineering.
@@ -71,6 +83,8 @@ Stay tuned for more updates on LinkedIn and feel free to connect for feedback, d
 
 **Author**: Misha  
 **Project Status**: 🚧 In Progress  
-**Contact**: Connect with me on [LinkedIn](https://www.linkedin.com/)  
+**Contact**: Connect with me on [LinkedIn](https://www.linkedin.com/in/misha-freidin/)  
 
 ---
+
+
