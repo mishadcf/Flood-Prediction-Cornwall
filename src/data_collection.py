@@ -5,6 +5,9 @@ import os
 from meteostat import Hourly, Daily, Monthly, Stations
 from datetime import datetime
 
+
+
+
 headers = {
     "Accept": "application/json, text/javascript, */*; q=0.01",
     "Origin": "https://www.gaugemap.co.uk",
@@ -50,11 +53,6 @@ def get_top_level_info_river_gauges(
 
 
 # next : pull river data from the IDs listed in the result (as above)
-
-import os
-import requests
-import json
-import pandas as pd
 
 def fetch_and_save_river_data(station_ids, start_date, end_date, smoothing=2, destination="get_river_data/data"):
     """
