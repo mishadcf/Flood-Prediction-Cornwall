@@ -2,6 +2,7 @@ import pandas as pd
 from ast import literal_eval
 import json
 import os
+import numpy as np
 
 
 """utility functions for data preprocessing """
@@ -103,6 +104,12 @@ def check_missing_days_in_directory(directory):
             }
     
     return files_with_missing_days
+
+def remove_negative_river_levels(df):
+    df['value'] =  df['value'].apply(lambda x : np.nan if x<0 else x)
+    return df
+
+
 
 # Example usage
 # directory_path = 'get_river_data/data'  # Replace with your actual directory path
