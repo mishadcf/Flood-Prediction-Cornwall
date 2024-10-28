@@ -109,6 +109,17 @@ def remove_negative_river_levels(df):
     df['value'] =  df['value'].apply(lambda x : np.nan if x<0 else x)
     return df
 
+def count_missing_quarter_hour_rows(df):
+    total_rows_original = len(df)
+    
+    resampled = df.asfreq('15min')
+
+    total_missing_rows = resampled.isnull().sum().sum()  # Total missing values across all columns
+    pct_missing = (total_missing_rows / total_rows_original) * 100.0
+
+    # Print both the number and percentage of missing rows
+    print(f"There are {total_missing_rows} missing rows at the 15-minute interval, "
+          f"which is {pct_missing:.2f}% of the original DataFrame.")
 
 
 # Example usage
