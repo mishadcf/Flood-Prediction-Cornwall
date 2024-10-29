@@ -73,6 +73,17 @@ Here’s an overview of the project’s file structure:
 
 ---
 
+## Setting Up API Keys
+
+1. Copy `secrets.yaml.example` and rename it to `secrets.yaml`.
+2. Add your API keys in `secrets.yaml` as follows:
+
+```yaml
+api_keys:
+  river_gauge_api: "your_river_gauge_api_key_here"
+  weather_api: "your_weather_api_key_here"
+```
+
 ## Next Steps 🎯
 
 As the project evolves, I’ll be refining the model, optimizing feature engineering, and preparing for deployment. The goal is to create a robust, real-time flood prediction tool that effectively demonstrates data engineering, machine learning, and model deployment in a professional context.
