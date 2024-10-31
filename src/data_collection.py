@@ -4,8 +4,7 @@ import requests
 import os
 from meteostat import Hourly, Daily, Monthly, Stations
 from datetime import datetime
-
-
+import yaml 
 
 
 headers = {
@@ -19,6 +18,19 @@ headers = {
 west_cornwall_url = "https://riverlevelsapi.azurewebsites.net/TimeSeries/GetTimeSeriesStationsByCatchmentName/?catchmentName=West+Cornwall"
 
 north_cornwall_url = "https://riverlevelsapi.azurewebsites.net/TimeSeries/GetTimeSeriesStationsByCatchmentName/?catchmentName=North+Cornwall"
+
+def load_credentials():
+    # Load the credentials from secrets.yaml
+    with open("./secrets.yaml", "r") as file:
+        secrets = yaml.safe_load(file)
+
+    # Access API keys
+    river_gauge_api_key = secrets["api_keys"]["river_gauge_api"]
+    weather_api_key = secrets["api_keys"]["noaa_api"]
+
+    return river_gauge_api_key, weather_api_key
+
+#TODO: adapt secrets to enable various choices of API for weather data, potentially river data
 
 
 def get_top_level_info_river_gauges(
