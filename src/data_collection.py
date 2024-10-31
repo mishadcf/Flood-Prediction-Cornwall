@@ -21,7 +21,7 @@ north_cornwall_url = "https://riverlevelsapi.azurewebsites.net/TimeSeries/GetTim
 
 def load_credentials():
     # Load the credentials from secrets.yaml
-    with open("./secrets.yaml", "r") as file:
+    with open("secrets.yaml", "r") as file:
         secrets = yaml.safe_load(file)
 
     # Access API keys
