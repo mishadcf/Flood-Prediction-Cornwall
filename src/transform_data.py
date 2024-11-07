@@ -133,16 +133,7 @@ def count_missing_quarter_hour_rows(df, filename):
     return {"filename": filename, "total_missing_rows": total_missing_rows, "pct_missing": pct_missing}
 
 
-# Example usage
-# directory_path = 'get_river_data/data'  # Replace with your actual directory path
-# files_with_gaps = check_missing_days_in_directory(directory_path)
 
-# # Print the files that have missing days along with the percentages
-# if files_with_gaps:
-#     for file_name, info in files_with_gaps.items():
-#         print(f"{file_name} has {info['num_missing_days']} missing days ({info['missing_percentage']:.2f}%).")
-# else:
-#     print("No missing days in any files.")
 
 
 def detect_frequency(df: pd.DataFrame) -> str:
@@ -200,3 +191,57 @@ def detect_frequency_in_directory(directory_path: str, output_path: str):
         errors_output_path = 'detection_errors.csv'
         errors_df.to_csv(errors_output_path, index=False)
         print(f"Errors saved to {errors_output_path}")
+
+
+def clean_river_csv(path: str, downsample_to_hourly=False, aggregation_method='mean') -> pd.DataFrame:
+    print(f"\nProcessing file: {path}")
+    
+    # Read CSV file
+    try:
+        original_df = pd.read_csv(path)
+    except Exception as e:
+        print(f"Error reading {path}: {e}")
+        return None, None
+
+    # Check if 'time' column exists
+    if 'time' not in original_df.columns:
+        print(f"Error: 'time' column is missing in {path}")
+        return original_df, None
+
+    # Initial row count before parsing
+    initial_row_count = len(original_df)
+    
+    # Convert 'time' column to datetime format with error coercion, then drop NaT rows
+    original_df['time'] = pd.to_datetime(original_df['time'], errors='coerce')
+    parsed_row_count = original_df['time'].notna().sum()  # Count rows with valid datetime values
+
+    # Calculate percentage of rows dropped
+    rows_dropped = initial_row_count - parsed_row_count
+    pct_rows_dropped = (rows_dropped / initial_row_count) * 100
+    print(f"Rows dropped due to unparseable 'time' values: {rows_dropped} ({pct_rows_dropped:.2f}%)")
+
+    # Drop rows with NaT in 'time' column and set it as index
+    original_df = original_df.dropna(subset=['time'])
+    original_df.set_index('time', inplace=True)
+    
+    # Resample the DataFrame to a 15-minute frequency for filling missing data
+    df_15min = original_df.asfreq('15min')
+    
+    # Replace negative values with NaN and interpolate missing values
+    df_15min['value'] = df_15min['value'].apply(lambda x: np.nan if x < 0 else x)
+    df_15min['value'] = df_15min['value'].interpolate(method='linear')
+    print("Negative values replaced and missing values filled using linear interpolation.\n")
+    
+    # Optional downsampling to hourly frequency
+    if downsample_to_hourly:
+        if aggregation_method == 'mean':
+            df_hourly = df_15min.resample('H').mean()
+        elif aggregation_method == 'first':
+            df_hourly = df_15min.resample('H').first()
+        else:
+            raise ValueError("Invalid aggregation_method. Use 'mean' or 'first'.")
+        
+        print("Downsampling to hourly frequency with chosen aggregation method.\n")
+        return original_df, df_hourly
+    
+    return original_df, df_15min
