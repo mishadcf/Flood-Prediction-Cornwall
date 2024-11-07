@@ -111,17 +111,26 @@ def remove_negative_river_levels(df):
     df['value'] =  df['value'].apply(lambda x : np.nan if x<0 else x)
     return df
 
-def count_missing_quarter_hour_rows(df):
-    total_rows_original = len(df)
+def count_missing_quarter_hour_rows(df, filename):
+    # Ensure the timestamp column is in datetime format and set as index
+    if 'time' in df.columns:
+        df['time'] = pd.to_datetime(df['time'])  # Adjust 'time' if your timestamp column has a different name
+        df.set_index('time', inplace=True)
+    else:
+        return {"filename": filename, "total_missing_rows": None, "pct_missing": None, "error": "No 'time' column"}
+
+    # Calculate the expected total number of 15-minute intervals
+    start_time = df.index.min()
+    end_time = df.index.max()
+    expected_total_rows = pd.date_range(start=start_time, end=end_time, freq='15min').shape[0]
     
+    # Resample to 15-minute intervals and count missing rows
     resampled = df.asfreq('15min')
-
     total_missing_rows = resampled.isnull().sum().sum()  # Total missing values across all columns
-    pct_missing = (total_missing_rows / total_rows_original) * 100.0
+    pct_missing = (total_missing_rows / expected_total_rows) * 100.0
 
-    # Print both the number and percentage of missing rows
-    print(f"There are {total_missing_rows} missing rows at the 15-minute interval, "
-          f"which is {pct_missing:.2f}% of the original DataFrame.")
+    # Return results as a dictionary
+    return {"filename": filename, "total_missing_rows": total_missing_rows, "pct_missing": pct_missing}
 
 
 # Example usage
