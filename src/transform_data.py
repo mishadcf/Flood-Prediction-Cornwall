@@ -3,6 +3,8 @@ from ast import literal_eval
 import json
 import os
 import numpy as np
+from datetime import datetime
+from pandas.tseries.frequencies import to_offset
 
 
 """utility functions for data preprocessing """
@@ -132,3 +134,60 @@ def count_missing_quarter_hour_rows(df):
 #         print(f"{file_name} has {info['num_missing_days']} missing days ({info['missing_percentage']:.2f}%).")
 # else:
 #     print("No missing days in any files.")
+
+
+def detect_frequency(df: pd.DataFrame) -> str:
+    """Detect the most common time interval between observations in a time series DataFrame."""
+    time_diffs = df.index.to_series().diff().dropna()
+    most_common_diff = time_diffs.mode()[0]
+    detected_frequency = to_offset(most_common_diff).freqstr
+    return detected_frequency
+
+def detect_frequency_in_directory(directory_path: str, output_path: str):
+    # Initialize a list to store the results
+    results = []
+    errors = []
+
+    # Loop through each CSV file in the directory
+    for filename in os.listdir(directory_path):
+        if filename.endswith(".csv"):
+            file_path = os.path.join(directory_path, filename)
+            try:
+                df = pd.read_csv(file_path)
+
+                # Check if 'time' column exists
+                if 'time' not in df.columns:
+                    errors.append({'filename': filename, 'error': 'Missing "time" column'})
+                    print(f"Error: '{filename}' is missing the 'time' column.")
+                    continue  # Skip this file
+
+                # Ensure 'time' column is in datetime format and set it as the index
+                df['time'] = pd.to_datetime(df['time'])
+                df.set_index('time', inplace=True)
+                
+                # Detect frequency
+                detected_frequency = detect_frequency(df)
+                print(f"Detected frequency for {filename}: {detected_frequency}")
+                
+                # Append results
+                results.append({
+                    'filename': filename,
+                    'detected_frequency': detected_frequency
+                })
+
+            except Exception as e:
+                # Log other errors
+                errors.append({'filename': filename, 'error': str(e)})
+                print(f"Error processing {filename}: {e}")
+
+    # Convert results to a DataFrame and save as CSV
+    results_df = pd.DataFrame(results)
+    results_df.to_csv(output_path, index=False)
+    print(f"Frequency information saved to {output_path}")
+
+    # Save errors to a separate file if any
+    if errors:
+        errors_df = pd.DataFrame(errors)
+        errors_output_path = 'detection_errors.csv'
+        errors_df.to_csv(errors_output_path, index=False)
+        print(f"Errors saved to {errors_output_path}")
