@@ -5,7 +5,10 @@ import os
 from meteostat import Hourly, Daily, Monthly, Stations
 from datetime import datetime
 import yaml 
-
+import openmeteo_requests
+import requests_cache
+from retry_requests import retry
+import os
 
 headers = {
     "Accept": "application/json, text/javascript, */*; q=0.01",
@@ -194,7 +197,7 @@ def pull_noaa_weather_data(station_id, start_date, end_date, token, datatypes):
         print(f"Error: {response.status_code}")
         return None
 
-def fetch_weather_data_over_years(station_id, start_year, end_year, token, datatypes):
+def fetch_weather_data_over_years_noaa(station_id, start_year, end_year, token, datatypes):
     all_data = []
     for year in range(start_year, end_year + 1):
         start_date = f"{year}-01-01"
@@ -206,6 +209,86 @@ def fetch_weather_data_over_years(station_id, start_year, end_year, token, datat
             all_data.extend(weather_data['results'])  # Combine the yearly data
     
     return all_data
+
+
+def fetch_and_save_weather_data(url, params, station_coordinates):
+    """
+    Fetch and save weather data from Jan 1, 2016, the earliest date for which data is available, to the current date for each station.
+    Saves each station's data as a CSV and prints the matched weather station coordinates.
+    """
+    # Setup the Open-Meteo API client with caching and retry on error
+    cache_session = requests_cache.CachedSession('.cache', expire_after=-1)
+    retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
+    openmeteo = openmeteo_requests.Client(session=retry_session)
+    
+    # Define the start and end dates within the function
+    current_date = datetime.now()
+    start_date_2016 = datetime(2016, 1, 1)
+    
+    # Create the output directory if it doesn't exist
+    output_dir = "data/weather_data"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Set date parameters for the allowed range (Jan 1, 2016 to today)
+    params["start_date"] = start_date_2016.strftime('%Y-%m-%d')
+    params["end_date"] = current_date.strftime('%Y-%m-%d')
+    params["hourly"] = ["temperature_2m", "relative_humidity_2m", "rain", "pressure_msl", "surface_pressure", "soil_moisture_0_to_7cm"]
+    
+    # Loop through each station and fetch data
+    for station_name, (lat, lon) in station_coordinates.items():
+        params["latitude"], params["longitude"] = lat, lon
+        try:
+            # API call to retrieve weather data
+            responses = openmeteo.weather_api(url, params=params)
+            if responses:
+                response = responses[0]
+                
+                # Display the closest weather station coordinates
+                station_lat = response.Latitude()
+                station_lon = response.Longitude()
+                print(f"{station_name}: Closest weather station at ({station_lat}, {station_lon})")
+                
+                # Access hourly data and create a DataFrame
+                hourly = response.Hourly()
+                hourly_data = {
+                    "date": pd.date_range(
+                        start=pd.to_datetime(hourly.Time(), unit="s", utc=True),
+                        end=pd.to_datetime(hourly.TimeEnd(), unit="s", utc=True),
+                        freq=pd.Timedelta(seconds=hourly.Interval()),
+                        inclusive="left"
+                    ),
+                    "temperature_2m": hourly.Variables(0).ValuesAsNumpy(),
+                    "relative_humidity_2m": hourly.Variables(1).ValuesAsNumpy(),
+                    "rain": hourly.Variables(2).ValuesAsNumpy(),
+                    "pressure_msl": hourly.Variables(3).ValuesAsNumpy(),
+                    "surface_pressure": hourly.Variables(4).ValuesAsNumpy(),
+                    "soil_moisture_0_to_7cm": hourly.Variables(5).ValuesAsNumpy(),
+                    "weather_station_latitude": [station_lat] * len(hourly.Variables(0).ValuesAsNumpy()),
+                    "weather_station_longitude": [station_lon] * len(hourly.Variables(0).ValuesAsNumpy())
+                }
+                
+                # Save each station's weather data to a CSV with the naming convention
+                df = pd.DataFrame(data=hourly_data)
+                csv_path = os.path.join(output_dir, f"{station_name}_nearest_weather_station_openmeteo.csv")
+                df.to_csv(csv_path, index=False)
+                print(f"Data for {station_name} saved to {csv_path}")
+
+        except Exception as e:
+            print(f"Error fetching data for {station_name} ({lat}, {lon}): {e}")
+
+# # Example usage
+# url = "https://archive-api.open-meteo.com/v1/archive"
+# params = {}
+
+# # Dictionary with station names and coordinates
+# station_coordinates = {
+#     "station_1": (50.47965214144801, -4.795632626910022),
+#     "station_2": (50.806426509528855, -4.53645942100034),
+#     "station_3": (50.84448721946478, -4.509159997600046),
+# }
+
+# # Fetch and save data for each station
+# fetch_and_save_weather_data(url, params, station_coordinates)
 
 # # Example usage
 # api_key = "12345"  # Replace with your NOAA API key
