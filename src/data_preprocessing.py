@@ -261,3 +261,34 @@ def clean_river_csv(path: str, downsample_to_hourly=False, aggregation_method='m
         return original_df, df_hourly
     
     return original_df, df_15min
+
+
+def extract_time_features(df):
+    """
+    Extracts time-related features from the index of the input DataFrame
+    and returns a new DataFrame containing these features.
+
+    Parameters:
+    df (pd.DataFrame): DataFrame with a datetime index.
+
+    Returns:
+    pd.DataFrame: DataFrame containing the extracted time features.
+    """
+    # Ensure the DataFrame index is a datetime type
+    if not isinstance(df.index, pd.DatetimeIndex):
+        raise ValueError("The DataFrame index must be a DatetimeIndex.")
+
+    # Create a new DataFrame for time features
+    time_features_df = pd.DataFrame(index=df.index)
+    time_features_df['year'] = df.index.year
+    time_features_df['month'] = df.index.month
+    time_features_df['week'] = df.index.isocalendar().week
+    time_features_df['hour'] = df.index.hour
+    time_features_df['day'] = df.index.dayofweek
+    time_features_df['day_str'] = df.index.strftime('%a')
+    time_features_df['year_month'] = df.index.strftime('%Y_%m')
+
+    # Reset the index so 'time' becomes a column, if needed
+    time_features_df.reset_index(inplace=True)
+
+    return time_features_df
