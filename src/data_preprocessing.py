@@ -9,6 +9,10 @@ from pandas.tseries.frequencies import to_offset
 
 """utility functions for data preprocessing """
 
+# placeholder for later
+if __name__ == '__main__':
+    pass
+
 #TODO : add class logic : class RiverDataProcessor, class WeatherDataProcessor
 
 def extract_time_values_from_csv(path: str = None) -> pd.DataFrame:
