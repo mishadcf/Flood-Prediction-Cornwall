@@ -292,3 +292,77 @@ def extract_time_features(df):
     time_features_df.reset_index(inplace=True)
 
     return time_features_df
+
+
+def clean_weather_df(df, return_metadata=False):
+    """
+    Cleans the weather DataFrame by performing the following:
+    - Renames the 'date' column to 'time' and sets it as index.
+    - Converts 'time' to UTC and checks for duplicates based on timestamps.
+    - Calculates the proportion of duplicate and missing timestamps.
+    - Returns the cleaned DataFrame and, optionally, metadata on duplicates and missing data.
+
+    Parameters:
+    df (pd.DataFrame): Raw weather data with a 'date' column.
+    return_metadata (bool): If True, returns a dictionary with metadata on cleaning.
+
+    Returns:
+    pd.DataFrame: Cleaned DataFrame with 'time' as the index in UTC.
+    (optional) dict: Metadata with details about duplicates and missing timestamps.
+    """
+    # Check if 'date' column exists
+    if 'date' not in df.columns:
+        print("Error: 'date' column is missing in the DataFrame")
+        return df, None if return_metadata else df
+    
+    # Rename 'date' to 'time' for consistency
+    df.rename(columns={'date': 'time'}, inplace=True)
+    print(f"There are {df.isnull().sum().sum()} total nulls prior to cleaning")
+
+    # Convert 'time' column to datetime format, coerce invalid dates to NaT
+    df['time'] = pd.to_datetime(df['time'], errors='coerce')
+    
+    # Drop rows with NaT in 'time'
+    df.dropna(subset=['time'], inplace=True)
+    
+    # Set 'time' as index and convert to UTC
+    df.set_index('time', inplace=True)
+    df.index = df.index.tz_convert('UTC')  # Use tz_convert since it's already tz-aware
+
+    # Reset the index temporarily for duplicate detection
+    reset_df = df.reset_index()
+
+    # Identify duplicate timestamps based only on 'time'
+    duplicate_rows = reset_df[reset_df.duplicated(subset='time', keep=False)]
+    print(f"Total duplicate rows (counting all instances): {len(duplicate_rows)}")
+
+    # Calculate the actual number of excess duplicate rows
+    unique_duplicates = reset_df['time'].duplicated().sum()  # count duplicates, excluding the first instance
+    proportion_duplicates = (unique_duplicates / len(df)) * 100
+    print(f"Proportion of excess duplicate rows: {proportion_duplicates:.2f}%")
+
+    # Remove duplicate rows, keeping only the first occurrence
+    df = df[~df.index.duplicated(keep='first')]
+
+    # Check for missing timestamps by resampling to expected frequency
+    # Assuming weather data is recorded every hour, adjust 'h' if different
+    expected_freq = 'h'
+    full_range = pd.date_range(start=df.index.min(), end=df.index.max(), freq=expected_freq)
+    missing_timestamps = full_range.difference(df.index)
+    num_missing = len(missing_timestamps)
+    pct_missing = (num_missing / len(full_range)) * 100
+    print(f"Missing timestamps: {num_missing} ({pct_missing:.2f}%)")
+
+    # Optional logging of final row count
+    print(f"Final row count after cleaning: {len(df)}")
+
+    # Prepare metadata if requested
+    metadata = {
+        "duplicates_removed": unique_duplicates,
+        "proportion_duplicates": proportion_duplicates,
+        "missing_timestamps": num_missing,
+        "proportion_missing": pct_missing
+    }
+    
+    # Return based on `return_metadata`
+    return (df, metadata) if return_metadata else df
