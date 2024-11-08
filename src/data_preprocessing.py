@@ -226,7 +226,7 @@ def clean_river_csv(path: str, downsample_to_hourly=False, aggregation_method='m
     original_df.set_index('time', inplace=True)
     
     # Make into UTC timezone, for ease of merging on time series weather data
-    original_df = original_df.tz_localize('UTC')
+    original_df.index = original_df.index.tz_localize('UTC')
     
     # Resample the DataFrame to a 15-minute frequency for filling missing data
     df_15min = original_df.asfreq('15min')
