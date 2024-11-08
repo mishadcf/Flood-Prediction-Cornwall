@@ -114,7 +114,7 @@ def remove_negative_river_levels(df):
 def count_missing_quarter_hour_rows(df, filename):
     # Ensure the timestamp column is in datetime format and set as index
     if 'time' in df.columns:
-        df['time'] = pd.to_datetime(df['time'])  # Adjust 'time' if your timestamp column has a different name
+        df['time'] = pd.to_datetime(df['time'])  
         df.set_index('time', inplace=True)
     else:
         return {"filename": filename, "total_missing_rows": None, "pct_missing": None, "error": "No 'time' column"}
@@ -193,7 +193,8 @@ def detect_frequency_in_directory(directory_path: str, output_path: str):
         print(f"Errors saved to {errors_output_path}")
 
 
-def clean_river_csv(path: str, downsample_to_hourly=False, aggregation_method='mean') -> pd.DataFrame:
+
+def clean_river_csv(path: str, downsample_to_hourly=False, aggregation_method='mean', calculate_missing_measurements=True) -> pd.DataFrame:
     print(f"\nProcessing file: {path}")
     
     # Read CSV file
@@ -224,9 +225,24 @@ def clean_river_csv(path: str, downsample_to_hourly=False, aggregation_method='m
     original_df = original_df.dropna(subset=['time'])
     original_df.set_index('time', inplace=True)
     
+    # Make into UTC timezone, for ease of merging on time series weather data
+    original_df = original_df.tz_localize('UTC')
+    
     # Resample the DataFrame to a 15-minute frequency for filling missing data
     df_15min = original_df.asfreq('15min')
-    
+    print(f"The resampling to 15 created {len(df_15min) - len(original_df)} rows corresponding to missing timestamps")
+
+    # Optional calculation of missing rows information
+    if calculate_missing_measurements:
+        # Calculate the expected number of rows and the percentage of missing rows
+        start_time = df_15min.index.min()
+        end_time = df_15min.index.max()
+        expected_total_rows = pd.date_range(start=start_time, end=end_time, freq='15min').shape[0]
+        total_missing_rows = df_15min.isnull().sum().sum()  # Total missing values across all columns
+        pct_missing = (total_missing_rows / expected_total_rows) * 100.0
+
+        print(f"Total missing 15-minute rows: {total_missing_rows} ({pct_missing:.2f}%)\n")
+
     # Replace negative values with NaN and interpolate missing values
     df_15min['value'] = df_15min['value'].apply(lambda x: np.nan if x < 0 else x)
     df_15min['value'] = df_15min['value'].interpolate(method='linear')
