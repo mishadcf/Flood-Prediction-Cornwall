@@ -5,6 +5,7 @@ import os
 import numpy as np
 from datetime import datetime
 from pandas.tseries.frequencies import to_offset
+import re
 
 
 """utility functions for data preprocessing """
@@ -14,6 +15,53 @@ if __name__ == '__main__':
     pass
 
 #TODO : add class logic : class RiverDataProcessor, class WeatherDataProcessor
+
+
+def load_all_river_gauge_csvs(data_dir ='data/river_data'):
+    """
+    Load all river gauge CSV files in the specified directory.
+    Assumes filenames are in the format: station_<ID>_clean.csv.
+
+    Parameters:
+        data_dir (str): Directory containing river gauge CSV files.
+
+    Returns:
+        dict: A dictionary with station IDs as keys and DataFrames as values.
+    """
+    river_gauge_data = {}
+    for filename in os.listdir(data_dir):
+        if filename.endswith("_clean.csv"):
+            match = re.match(r"station_(\d+)_clean\.csv", filename)
+            if match:
+                station_id = f"station_{match.group(1)}"
+                file_path = os.path.join(data_dir, filename)
+                river_gauge_data[station_id] = pd.read_csv(file_path)
+    return river_gauge_data
+
+
+def load_all_weather_station_csvs(data_dir = 'data/weather_data'):
+    """
+    Load all weather station CSV files in the specified directory.
+    Assumes filenames are in the format: <name>_<ID>_nearest_weather_station_openmeteo.csv.
+
+    Parameters:
+        data_dir (str): Directory containing weather station CSV files.
+
+    Returns:
+        dict: A dictionary with gauge names and station IDs as keys and DataFrames as values.
+    """
+    weather_station_data = {}
+    for filename in os.listdir(data_dir):
+        if filename.endswith("_nearest_weather_station_openmeteo.csv"):
+            match = re.match(r"(.+?)_(\d+)_nearest_weather_station_openmeteo\.csv", filename)
+            if match:
+                station_name = match.group(1)
+                station_id = match.group(2)
+                full_station_name = f"{station_name}_{station_id}"
+                file_path = os.path.join(data_dir, filename)
+                weather_station_data[full_station_name] = pd.read_csv(file_path)
+    return weather_station_data
+
 
 def extract_time_values_from_csv(path: str = None) -> pd.DataFrame:
     """extracts just the measurements, as per the format of the API response"""
@@ -40,6 +88,7 @@ def extract_time_values_from_csv(path: str = None) -> pd.DataFrame:
         df = df.set_index("time")
 
         return df
+    
 
 
 def concat_all_river_gauges(river_directory="data/river_data"):
