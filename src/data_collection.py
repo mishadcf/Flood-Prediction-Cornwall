@@ -9,6 +9,13 @@ import openmeteo_requests
 import requests_cache
 from retry_requests import retry
 import os
+import time 
+
+
+# placeholder for later
+if __name__ == '__main__':
+    pass
+
 
 headers = {
     "Accept": "application/json, text/javascript, */*; q=0.01",
@@ -211,43 +218,57 @@ def fetch_weather_data_over_years_noaa(station_id, start_year, end_year, token, 
     return all_data
 
 
-def fetch_and_save_weather_data(url, params, station_coordinates):
+def fetch_and_save_weather_data_2(station_coordinates, url = "https://archive-api.open-meteo.com/v1/archive", params = {}):
     """
-    Fetch and save weather data from Jan 1, 2016, the earliest date for which data is available, to the current date for each station.
-    Saves each station's data as a CSV and prints the matched weather station coordinates.
+    Fetch and save weather data from Jan 1, 2016, to the current date for each station.
+    Saves each station's data as a CSV, skips already downloaded stations, and pauses to respect rate limits.
     """
+    # Define the start and end dates within the function
+    current_date = datetime.now()
+    start_date_2016 = datetime(2016, 1, 1)
+    
+    
     # Setup the Open-Meteo API client with caching and retry on error
     cache_session = requests_cache.CachedSession('.cache', expire_after=-1)
     retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
     openmeteo = openmeteo_requests.Client(session=retry_session)
     
-    # Define the start and end dates within the function
-    current_date = datetime.now()
-    start_date_2016 = datetime(2016, 1, 1)
     
     # Create the output directory if it doesn't exist
     output_dir = "data/weather_data"
     os.makedirs(output_dir, exist_ok=True)
-    
+
+
+
     # Set date parameters for the allowed range (Jan 1, 2016 to today)
     params["start_date"] = start_date_2016.strftime('%Y-%m-%d')
     params["end_date"] = current_date.strftime('%Y-%m-%d')
     params["hourly"] = ["temperature_2m", "relative_humidity_2m", "rain", "pressure_msl", "surface_pressure", "soil_moisture_0_to_7cm"]
     
-    # Loop through each station and fetch data
+    request_count = 0
+    max_requests_per_minute = 5  # Set this based on your API limit
+
     for station_name, (lat, lon) in station_coordinates.items():
+        # Construct the CSV file path
+        csv_path = os.path.join(output_dir, f"{station_name}_nearest_weather_station_openmeteo.csv")
+
+        # Skip if the file already exists
+        if os.path.exists(csv_path):
+            print(f"Data for {station_name} already exists. Skipping...")
+            continue
+
         params["latitude"], params["longitude"] = lat, lon
         try:
             # API call to retrieve weather data
             responses = openmeteo.weather_api(url, params=params)
             if responses:
                 response = responses[0]
-                
-                # Display the closest weather station coordinates
+
+                # Get weather station coordinates
                 station_lat = response.Latitude()
                 station_lon = response.Longitude()
                 print(f"{station_name}: Closest weather station at ({station_lat}, {station_lon})")
-                
+
                 # Access hourly data and create a DataFrame
                 hourly = response.Hourly()
                 hourly_data = {
@@ -266,13 +287,25 @@ def fetch_and_save_weather_data(url, params, station_coordinates):
                     "weather_station_latitude": [station_lat] * len(hourly.Variables(0).ValuesAsNumpy()),
                     "weather_station_longitude": [station_lon] * len(hourly.Variables(0).ValuesAsNumpy())
                 }
-                
-                # Save each station's weather data to a CSV with the naming convention
+
+                # Save data to a CSV file
                 df = pd.DataFrame(data=hourly_data)
-                csv_path = os.path.join(output_dir, f"{station_name}_nearest_weather_station_openmeteo.csv")
                 df.to_csv(csv_path, index=False)
                 print(f"Data for {station_name} saved to {csv_path}")
 
+                # Increment the request count
+                request_count += 1
+
+                # Pause to respect the rate limit
+                if request_count >= max_requests_per_minute:
+                    print("Rate limit reached, pausing for 1 minute...")
+                    time.sleep(60)
+                    request_count = 0  # Reset counter after pause
+
+        except Exception as e:
+            print(f"Error fetching data for {station_name} ({lat}, {lon}): {e}")
+            print("Waiting for 1 minute before retrying...")
+            time.sleep(60)  # Wait before retrying
         except Exception as e:
             print(f"Error fetching data for {station_name} ({lat}, {lon}): {e}")
 
