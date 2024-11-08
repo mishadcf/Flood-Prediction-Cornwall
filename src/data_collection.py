@@ -218,7 +218,7 @@ def fetch_weather_data_over_years_noaa(station_id, start_year, end_year, token, 
     return all_data
 
 
-def fetch_and_save_weather_data_2(station_coordinates, url = "https://archive-api.open-meteo.com/v1/archive", params = {}):
+def fetch_and_save_weather_data(station_coordinates, url = "https://archive-api.open-meteo.com/v1/archive", params = {}):
     """
     Fetch and save weather data from Jan 1, 2016, to the current date for each station.
     Saves each station's data as a CSV, skips already downloaded stations, and pauses to respect rate limits.
