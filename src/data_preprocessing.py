@@ -37,7 +37,7 @@ def extract_time_values_from_csv(path: str = None) -> pd.DataFrame:
         return df
 
 
-def concat_all_river_gauges(river_directory="get_river_data/data"):
+def concat_all_river_gauges(river_directory="data/river_data"):
     all_dfs = []
 
     # Iterate through each file in the directory
