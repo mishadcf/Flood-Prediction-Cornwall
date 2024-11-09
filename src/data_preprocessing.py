@@ -63,6 +63,25 @@ def load_all_weather_station_csvs(data_dir = 'data/weather_data'):
     return weather_station_data
 
 
+
+def ridiculous_values_river(df, remove_ridiculous=False):
+    """Identifies what is almost certainly errors in river gauge data (not normal outliers)"""
+    
+    mean = df['value'].mean()
+    standard_deviation = df['value'].std()
+    
+    # Identify ridiculous values
+    ridiculous_values = df.loc[(df['value'] > mean + 10 * standard_deviation) | (df['value'] < 0)]
+    print(f'Ridiculous values from df:\n{ridiculous_values}')
+    
+    # Remove ridiculous values by replacing them with NaN if specified
+    if remove_ridiculous:
+        df.loc[(df['value'] > mean + 10 * standard_deviation) | (df['value'] < 0), 'value'] = np.nan
+        print('This is the df without the erroneous looking values:')
+    
+    return df  # Return the modified DataFrame
+
+
 def extract_time_values_from_csv(path: str = None) -> pd.DataFrame:
     """Extracts time and measurement values from the CSV based on the API response format"""
     
@@ -425,3 +444,6 @@ def clean_weather_df(df, return_metadata=False):
     
     # Return based on `return_metadata`
     return (df, metadata) if return_metadata else df
+
+
+        
