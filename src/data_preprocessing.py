@@ -63,10 +63,10 @@ def load_all_weather_station_csvs(data_dir = 'data/weather_data'):
     return weather_station_data
 
 
-
 def ridiculous_values_river(df, remove_ridiculous=False):
     """Identifies what is almost certainly errors in river gauge data (not normal outliers)"""
     
+
     mean = df['value'].mean()
     standard_deviation = df['value'].std()
     
@@ -74,12 +74,13 @@ def ridiculous_values_river(df, remove_ridiculous=False):
     ridiculous_values = df.loc[(df['value'] > mean + 10 * standard_deviation) | (df['value'] < 0)]
     print(f'Ridiculous values from df:\n{ridiculous_values}')
     
-    # Remove ridiculous values by replacing them with NaN if specified
+
     if remove_ridiculous:
         df.loc[(df['value'] > mean + 10 * standard_deviation) | (df['value'] < 0), 'value'] = np.nan
         print('This is the df without the erroneous looking values:')
+        print(df)  # Print the modified DataFrame
     
-    return df  # Return the modified DataFrame
+    return df 
 
 
 def extract_time_values_from_csv(path: str = None) -> pd.DataFrame:
