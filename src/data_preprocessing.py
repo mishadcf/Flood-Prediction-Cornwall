@@ -64,30 +64,31 @@ def load_all_weather_station_csvs(data_dir = 'data/weather_data'):
 
 
 def extract_time_values_from_csv(path: str = None) -> pd.DataFrame:
-    """extracts just the measurements, as per the format of the API response"""
+    """Extracts time and measurement values from the CSV based on the API response format"""
 
+    # Read in the 'values' column
     df = pd.read_csv(path, usecols=["values"])
-    # Convert string representation of lists into actual lists of dictionaries
 
+    # Convert string representations of lists to actual lists of dictionaries
     df["values"] = df["values"].apply(literal_eval)
 
+    # Explode the list in the 'values' column to individual rows
     df = df.explode("values")
 
-    if not isinstance(df.at[0, "values"], list):
-        df["values"] = df["values"].apply(lambda x: [x])  # Ensure it's a list
-        df = df.explode("values")  # Now explode the DataFrame
-
+    # Check if "values" column contains dictionaries with "time" keys
+    if isinstance(df["values"].iloc[0], dict) and "time" in df["values"].iloc[0]:
         # Convert dictionaries to separate columns
-        df = pd.concat(
-            [df.drop("values", axis=1), df["values"].apply(pd.Series)], axis=1
-        )
-
-        # Convert 'time' to datetime format
+        df = pd.concat([df.drop("values", axis=1), df["values"].apply(pd.Series)], axis=1)
+    
+    # Ensure "time" column is in datetime format
+    if "time" in df.columns:
         df["time"] = pd.to_datetime(df["time"])
 
+    # Set "time" as index if it's not already done
+    if "time" in df.columns:
         df = df.set_index("time")
-
-        return df
+    
+    return df
     
 
 
