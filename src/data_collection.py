@@ -76,7 +76,7 @@ def get_top_level_info_river_gauges(
 
 # next : pull river data from the IDs listed in the result (as above)
 
-def fetch_and_save_river_data(station_ids, start_date, end_date, smoothing=2, destination="data/river_data"):
+def fetch_and_save_river_data(station_ids, start_date, end_date, smoothing=0, destination="data/river_data"):
     """
     Fetch river gauge measurements and save them to individual CSV files.
 
@@ -84,7 +84,7 @@ def fetch_and_save_river_data(station_ids, start_date, end_date, smoothing=2, de
     station_ids (list): A list of station IDs to fetch data for.
     start_date (str): The start date in ISO 8601 format (e.g., '2013-04-30T23:00:00').
     end_date (str): The end date in ISO 8601 format (e.g., '2023-08-31T22:59:59').
-    smoothing (int, optional): Smoothing parameter for the API. Default is 2.
+    smoothing (int, optional): Smoothing parameter for the API. Default is 0. This gives the highest possible granularity of data available. 
     destination (str, optional): The destination directory where the CSV files will be saved. Default is 'data/river_data'.
 
     Returns:
