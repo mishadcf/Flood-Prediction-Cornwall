@@ -65,30 +65,34 @@ def load_all_weather_station_csvs(data_dir = 'data/weather_data'):
 
 def extract_time_values_from_csv(path: str = None) -> pd.DataFrame:
     """Extracts time and measurement values from the CSV based on the API response format"""
-
-    # Read in the 'values' column
-    df = pd.read_csv(path, usecols=["values"])
-
-    # Convert string representations of lists to actual lists of dictionaries
-    df["values"] = df["values"].apply(literal_eval)
-
-    # Explode the list in the 'values' column to individual rows
-    df = df.explode("values")
-
-    # Check if "values" column contains dictionaries with "time" keys
-    if isinstance(df["values"].iloc[0], dict) and "time" in df["values"].iloc[0]:
-        # Convert dictionaries to separate columns
-        df = pd.concat([df.drop("values", axis=1), df["values"].apply(pd.Series)], axis=1)
     
-    # Ensure "time" column is in datetime format
-    if "time" in df.columns:
-        df["time"] = pd.to_datetime(df["time"])
+    try:
+        # Read in the 'values' column
+        df = pd.read_csv(path, usecols=["values"])
+        
+        # Convert string representations of lists to actual lists of dictionaries
+        df["values"] = df["values"].apply(literal_eval)
+        
+        # Explode the list in the 'values' column to individual rows
+        df = df.explode("values")
+        
+        # Check if "values" column contains dictionaries with "time" keys
+        if isinstance(df["values"].iloc[0], dict) and "time" in df["values"].iloc[0]:
+            # Convert dictionaries to separate columns
+            df = pd.concat([df.drop("values", axis=1), df["values"].apply(pd.Series)], axis=1)
+        
+        # Ensure "time" column is in datetime format
+        if "time" in df.columns:
+            df["time"] = pd.to_datetime(df["time"])
 
-    # Set "time" as index if it's not already done
-    if "time" in df.columns:
-        df = df.set_index("time")
-    
-    return df
+        # Set "time" as index if it's not already done
+        if "time" in df.columns:
+            df = df.set_index("time")
+        
+        return df
+    except Exception as e:
+        print(f"Error in extract_time_values_from_csv with file {path}: {e}")
+        return pd.DataFrame()  # Return an empty DataFrame
     
 
 
