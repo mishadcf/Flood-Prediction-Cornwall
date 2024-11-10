@@ -16,9 +16,9 @@ def plot_time_series(df, variable, station_name=None, save_path=None):
         save_path (str): File path to save the plot, if desired.
     """
     plt.figure(figsize=(12, 6))
-    plt.plot(df['date'], df[variable], label=variable)
+    plt.plot(df['time'], df[variable], label=variable)
     plt.title(f"Time Series of {variable}" + (f" at {station_name}" if station_name else ""))
-    plt.xlabel("Date")
+    plt.xlabel("time")
     plt.ylabel(variable)
     plt.legend()
     
