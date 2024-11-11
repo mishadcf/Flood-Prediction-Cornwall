@@ -62,6 +62,53 @@ def load_all_weather_station_csvs(data_dir = 'data/weather_data'):
                 weather_station_data[full_station_name] = pd.read_csv(file_path)
     return weather_station_data
 
+def get_file_pairs(river_dir, weather_dir, as_dataframes=False):
+    
+    """
+    The function `get_file_pairs` matches river and weather files based on river_id in the filenames and
+    returns a dictionary of file paths or DataFrames if specified.
+    
+    :param river_dir: `river_dir` is the directory path where the river data files are located
+    :param weather_dir: The `weather_dir` parameter in the `get_file_pairs` function is the directory
+    path where the weather CSV files are located. This function reads the files from the specified
+    `weather_dir` and matches them with corresponding river CSV files based on the river_id present in
+    the filenames
+    :param as_dataframes: The `as_dataframes` parameter in the `get_file_pairs` function is a boolean
+    flag that determines whether the function should return the matched files as DataFrames (`True`) or
+    as file paths (`False`), defaults to False (optional)
+    :return: The function `get_file_pairs` returns a dictionary containing pairs of river data and
+    weather data files. The keys in the dictionary are the filenames of the river data files, and the
+    values are dictionaries with keys 'river_data' and 'weather_data' pointing to either the file paths
+    or DataFrames (if `as_dataframes=True`) of the corresponding river and weather data files.
+    """
+    # Dictionary to store the matched file paths or DataFrames
+    file_pairs = {}
+
+    # Collect river files and weather files
+    river_files = {f: os.path.join(river_dir, f) for f in os.listdir(river_dir) if f.endswith('.csv')}
+    weather_files = {f: os.path.join(weather_dir, f) for f in os.listdir(weather_dir) if f.endswith('.csv')}
+
+    # Match based on river_id in the filenames
+    for river_filename, river_path in river_files.items():
+        # Extract river_id from river filename (assuming format `Gwithian_1339.csv`)
+        river_id = river_filename.split('_')[1].split('.')[0]
+
+        # Find the corresponding weather file
+        matched_weather_file = next((w_path for w_name, w_path in weather_files.items() if river_id in w_name), None)
+
+        # If a match is found, add to the dictionary
+        if matched_weather_file:
+            if as_dataframes:
+                # Read CSVs as DataFrames and store them
+                river_df = pd.read_csv(river_path)
+                weather_df = pd.read_csv(matched_weather_file)
+                file_pairs[river_filename] = {'river_data': river_df, 'weather_data': weather_df}
+            else:
+                # Store file paths
+                file_pairs[river_filename] = {'river_data': river_path, 'weather_data': matched_weather_file}
+
+    return file_pairs
+
 
 def ridiculous_values_river(df, remove_ridiculous=False):
     """Identifies what is almost certainly errors in river gauge data (not normal outliers)"""
@@ -447,4 +494,3 @@ def clean_weather_df(df, return_metadata=False):
     return (df, metadata) if return_metadata else df
 
 
-        
