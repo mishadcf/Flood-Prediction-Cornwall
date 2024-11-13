@@ -109,31 +109,39 @@ def get_file_pairs(river_dir, weather_dir, as_dataframes=False):
                 file_pairs[river_filename] = {'river_data': river_path, 'weather_data': matched_weather_file}
 
     return file_pairs
+import numpy as np
 
 def ridiculous_values_river(df, remove_ridiculous=False):
-    """Identifies what is almost certainly errors in river gauge data (not normal outliers)"""
+    """Identifies and optionally removes clearly erroneous values (e.g., negative values) in river gauge data."""
     
     mean = df['value'].mean()
     standard_deviation = df['value'].std()
     
-    # Identify ridiculous values
-    ridiculous_values = df.loc[(df['value'] > mean + 10 * standard_deviation) | (df['value'] < 0)]
-    ridiculous_count = len(ridiculous_values)
-    total_values = len(df)
-    ridiculous_percentage = (ridiculous_count / total_values) * 100 if total_values > 0 else 0
+    # Identify values beyond the 10 * standard deviation threshold for informational purposes
+    extreme_values = df.loc[(df['value'] > mean + 10 * standard_deviation)]
+    extreme_count = len(extreme_values)
+    extreme_percentage = (extreme_count / len(df)) * 100 if len(df) > 0 else 0
+
+    print(f'Extreme values from df (greater than mean + 10 * std):\n{extreme_values}')
+    print(f'Number of extreme values: {extreme_count}')
+    print(f'Percentage of extreme values: {extreme_percentage:.2f}%')
     
-    print(f'Ridiculous values from df:\n{ridiculous_values}')
+    # Identify clearly erroneous values (negative values)
+    ridiculous_values = df.loc[df['value'] < 0]
+    ridiculous_count = len(ridiculous_values)
+    ridiculous_percentage = (ridiculous_count / len(df)) * 100 if len(df) > 0 else 0
+
+    print(f'Ridiculous values from df (negative values):\n{ridiculous_values}')
     print(f'Number of ridiculous values: {ridiculous_count}')
     print(f'Percentage of ridiculous values: {ridiculous_percentage:.2f}%')
-
-    # Optionally remove ridiculous values by setting them to NaN
-    if remove_ridiculous:
-        df.loc[(df['value'] > mean + 10 * standard_deviation) | (df['value'] < 0), 'value'] = np.nan
-        print('This is the df without the erroneous looking values:')
-        print(df)  # Print the modified DataFrame
     
-    # Return the modified DataFrame, count, and percentage of ridiculous values
-    return df, ridiculous_count, ridiculous_percentage
+    # Optionally remove only clearly erroneous values by setting them to NaN
+    if remove_ridiculous:
+        df.loc[df['value'] < 0, 'value'] = np.nan
+        print('Negative values have been set to NaN in the DataFrame.')
+    
+    # Return the modified DataFrame, count of ridiculous values, and extreme values information
+    return df, ridiculous_count, ridiculous_percentage, extreme_count, extreme_percentage
 
 
 def extract_time_values_from_csv(path: str = None) -> pd.DataFrame:
