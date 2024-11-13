@@ -185,6 +185,34 @@ def visualize_missing_patterns_bulk(directory: str, output_dir: str, value_colum
             plt.close()
 
             print(f"Plots saved for {filename}")
+            
+def analyze_seasonal_missingness(directory, value_column='value'):
+    monthly_missing = []
+    
+    for filename in os.listdir(directory):
+        if filename.endswith('_raw.csv'):
+            # Load and resample data
+            df = pd.read_csv(os.path.join(directory, filename), parse_dates=['time'], index_col='time')
+            df_resampled = df.asfreq('15min')
+            df_resampled['missing'] = df_resampled[value_column].isnull().astype(int)
 
-# Example usage:
-# visualize_missing_patterns_bulk('data/river_data', 'output/missing_patterns')
+            # Calculate monthly missingness percentage
+            monthly_missing_df = df_resampled['missing'].groupby(df_resampled.index.month).mean() * 100
+            monthly_missing_df = monthly_missing_df.rename(filename)
+            monthly_missing.append(monthly_missing_df)
+    
+    # Concatenate monthly missing percentages across all files
+    monthly_missing_combined = pd.concat(monthly_missing, axis=1)
+    monthly_mean_missing = monthly_missing_combined.mean(axis=1)
+
+    # Plot
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=monthly_mean_missing, marker='o', color='b')
+    plt.title('Average Percentage of Missing Values by Month')
+    plt.xlabel('Month')
+    plt.ylabel('Average Percentage of Missing Values')
+    plt.xticks(range(1, 13), ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
+    plt.show()
+            
+
+
