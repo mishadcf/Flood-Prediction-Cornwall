@@ -30,8 +30,8 @@ def load_all_river_gauge_csvs(data_dir ='data/river_data'):
     """
     river_gauge_data = {}
     for filename in os.listdir(data_dir):
-        if filename.endswith("_clean.csv"):
-            match = re.match(r"station_(\d+)_clean\.csv", filename)
+        if filename.endswith("_raw.csv"):
+            match = re.match(r"station_(\d+)_raw\.csv", filename)
             if match:
                 station_id = f"station_{match.group(1)}"
                 file_path = os.path.join(data_dir, filename)
