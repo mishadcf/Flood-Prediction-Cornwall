@@ -340,8 +340,10 @@ def clean_river_csv(path: str, downsample_to_hourly=False, aggregation_method='m
 
         print(f"Total missing 15-minute rows: {total_missing_rows} ({pct_missing:.2f}%)\n")
 
-    # Replace negative values with NaN and interpolate missing values
-    df_15min['value'] = df_15min['value'].apply(lambda x: np.nan if x < 0 else x)
+    # Call ridiculous_values_river to remove ridiculous values
+    df_15min, ridiculous_count, ridiculous_percentage = ridiculous_values_river(df_15min, remove_ridiculous=True)
+    print(f"Ridiculous values removal complete: {ridiculous_count} values ({ridiculous_percentage:.2f}%) replaced with NaN.")
+
     df_15min['value'] = df_15min['value'].interpolate(method='linear')
     print("Negative values replaced and missing values filled using linear interpolation.\n")
     
