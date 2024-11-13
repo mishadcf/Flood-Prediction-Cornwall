@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import os
 
 if __name__ == '__main__':
     pass
@@ -107,6 +108,83 @@ def visualize_missing_values_rivers(csv_path: str, value_column: str = 'value'):
     plt.show()
 
 # Example usage:
-# visualize_missing_patterns('data/river_data/your_river_gauge_file.csv')
+# 
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
 
+def visualize_missing_patterns_bulk(directory: str, output_dir: str, value_column: str = 'value'):
+    """
+    Generates and saves missing data pattern visualizations for all CSV files in a directory after resampling to 15-minute intervals.
 
+    Parameters:
+    - directory: str - The directory containing the CSV files.
+    - output_dir: str - The directory where plots will be saved.
+    - value_column: str - The column name for the data values to check for missing values (default is 'value').
+    """
+    # Create the output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Loop through all CSV files in the directory
+    for filename in os.listdir(directory):
+        if filename.endswith('.csv'):
+            csv_path = os.path.join(directory, filename)
+            
+            # Load data
+            try:
+                df = pd.read_csv(csv_path, parse_dates=['time'], index_col='time')
+            except Exception as e:
+                print(f"Error reading {filename}: {e}")
+                continue
+            
+            # Ensure 'value' column exists
+            if value_column not in df.columns:
+                print(f"Column '{value_column}' not found in {filename}")
+                continue
+
+            # Resample to 15-minute frequency and fill missing timestamps with NaN
+            df_resampled = df.asfreq('15min')
+            
+            # Check for missing values in the resampled data
+            missing_count = df_resampled[value_column].isnull().sum()
+            if missing_count == 0:
+                print(f"No missing values found in resampled data for {filename}. Skipping...")
+                continue
+            
+            print(f"Processing {filename} with {missing_count} missing values after resampling.")
+
+            # Create missing value indicator
+            df_resampled['missing'] = df_resampled[value_column].isnull().astype(int)
+            
+            # Generate and save plots for missing values by hour, day, and month
+            plt.figure(figsize=(10, 5))
+            missing_by_hour = df_resampled.groupby(df_resampled.index.hour)['missing'].mean() * 100
+            missing_by_hour.plot(kind='bar', color='skyblue', edgecolor='black')
+            plt.title(f"Percentage of Missing Values by Hour of Day - {filename}")
+            plt.xlabel("Hour of Day")
+            plt.ylabel("Percentage of Missing Values")
+            plt.savefig(os.path.join(output_dir, f"{filename}_missing_by_hour.png"))
+            plt.close()
+
+            plt.figure(figsize=(10, 5))
+            missing_by_day = df_resampled.groupby(df_resampled.index.dayofweek)['missing'].mean() * 100
+            missing_by_day.plot(kind='bar', color='salmon', edgecolor='black')
+            plt.title(f"Percentage of Missing Values by Day of Week - {filename}")
+            plt.xlabel("Day of Week (0=Monday, 6=Sunday)")
+            plt.ylabel("Percentage of Missing Values")
+            plt.savefig(os.path.join(output_dir, f"{filename}_missing_by_day.png"))
+            plt.close()
+
+            plt.figure(figsize=(10, 5))
+            missing_by_month = df_resampled.groupby(df_resampled.index.month)['missing'].mean() * 100
+            missing_by_month.plot(kind='bar', color='lightgreen', edgecolor='black')
+            plt.title(f"Percentage of Missing Values by Month - {filename}")
+            plt.xlabel("Month")
+            plt.ylabel("Percentage of Missing Values")
+            plt.savefig(os.path.join(output_dir, f"{filename}_missing_by_month.png"))
+            plt.close()
+
+            print(f"Plots saved for {filename}")
+
+# Example usage:
+# visualize_missing_patterns_bulk('data/river_data', 'output/missing_patterns')
