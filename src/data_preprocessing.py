@@ -298,7 +298,8 @@ def detect_frequency_in_directory(directory_path: str, output_path: str):
         errors_df.to_csv(errors_output_path, index=False)
         print(f"Errors saved to {errors_output_path}")
 
-
+import numpy as np
+import pandas as pd
 
 def clean_river_csv(path: str, downsample_to_hourly=False, aggregation_method='mean', calculate_missing_measurements=True) -> pd.DataFrame:
     print(f"\nProcessing file: {path}")
@@ -349,10 +350,12 @@ def clean_river_csv(path: str, downsample_to_hourly=False, aggregation_method='m
 
         print(f"Total missing 15-minute rows: {total_missing_rows} ({pct_missing:.2f}%)\n")
 
-    # Call ridiculous_values_river to remove ridiculous values
-    df_15min, ridiculous_count, ridiculous_percentage = ridiculous_values_river(df_15min, remove_ridiculous=True)
+    # Call ridiculous_values_river to remove only negative ridiculous values and report extreme values
+    df_15min, ridiculous_count, ridiculous_percentage, extreme_count, extreme_percentage = ridiculous_values_river(df_15min, remove_ridiculous=True)
     print(f"Ridiculous values removal complete: {ridiculous_count} values ({ridiculous_percentage:.2f}%) replaced with NaN.")
+    print(f"Extreme values identified (greater than mean + 10 * std): {extreme_count} values ({extreme_percentage:.2f}%). These values have not been modified.")
 
+    # Interpolate missing values after removing ridiculous values
     df_15min['value'] = df_15min['value'].interpolate(method='linear')
     print("Missing values filled using linear interpolation.\n")
     
