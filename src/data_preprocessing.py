@@ -8,6 +8,7 @@ from pandas.tseries.frequencies import to_offset
 import re
 
 
+# IMPORTANT TODO: 'ridiculous' river values are extreme, but are they all errors? Might identify errors initally just by negative values, then decide how to classify extreme values
 """utility functions for data preprocessing """
 
 # placeholder for later
@@ -345,7 +346,7 @@ def clean_river_csv(path: str, downsample_to_hourly=False, aggregation_method='m
     print(f"Ridiculous values removal complete: {ridiculous_count} values ({ridiculous_percentage:.2f}%) replaced with NaN.")
 
     df_15min['value'] = df_15min['value'].interpolate(method='linear')
-    print("Negative values replaced and missing values filled using linear interpolation.\n")
+    print("Missing values filled using linear interpolation.\n")
     
     # Optional downsampling to hourly frequency
     if downsample_to_hourly:
