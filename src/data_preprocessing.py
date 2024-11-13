@@ -238,6 +238,8 @@ def remove_negative_river_levels(df):
     return df
 
 def count_missing_quarter_hour_rows(df, filename):
+    
+    df = df.reset_index()
     # Ensure the timestamp column is in datetime format and set as index
     if 'time' in df.columns:
         df['time'] = pd.to_datetime(df['time'])  
