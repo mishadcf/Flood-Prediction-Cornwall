@@ -109,25 +109,30 @@ def get_file_pairs(river_dir, weather_dir, as_dataframes=False):
 
     return file_pairs
 
-
 def ridiculous_values_river(df, remove_ridiculous=False):
     """Identifies what is almost certainly errors in river gauge data (not normal outliers)"""
     
-
     mean = df['value'].mean()
     standard_deviation = df['value'].std()
     
     # Identify ridiculous values
     ridiculous_values = df.loc[(df['value'] > mean + 10 * standard_deviation) | (df['value'] < 0)]
-    print(f'Ridiculous values from df:\n{ridiculous_values}')
+    ridiculous_count = len(ridiculous_values)
+    total_values = len(df)
+    ridiculous_percentage = (ridiculous_count / total_values) * 100 if total_values > 0 else 0
     
+    print(f'Ridiculous values from df:\n{ridiculous_values}')
+    print(f'Number of ridiculous values: {ridiculous_count}')
+    print(f'Percentage of ridiculous values: {ridiculous_percentage:.2f}%')
 
+    # Optionally remove ridiculous values by setting them to NaN
     if remove_ridiculous:
         df.loc[(df['value'] > mean + 10 * standard_deviation) | (df['value'] < 0), 'value'] = np.nan
         print('This is the df without the erroneous looking values:')
         print(df)  # Print the modified DataFrame
     
-    return df 
+    # Return the modified DataFrame, count, and percentage of ridiculous values
+    return df, ridiculous_count, ridiculous_percentage
 
 
 def extract_time_values_from_csv(path: str = None) -> pd.DataFrame:
