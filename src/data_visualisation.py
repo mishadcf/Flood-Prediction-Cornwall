@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import os
+from statsmodels.nonparametric.smoothers_lowess import lowess
+
 
 if __name__ == '__main__':
     pass
@@ -107,11 +109,7 @@ def visualize_missing_values_rivers(csv_path: str, value_column: str = 'value'):
     plt.ylabel("Percentage of Missing Values")
     plt.show()
 
-# Example usage:
-# 
-import os
-import pandas as pd
-import matplotlib.pyplot as plt
+
 
 def visualize_missing_patterns_bulk(directory: str, output_dir: str, value_column: str = 'value'):
     """
@@ -213,6 +211,63 @@ def analyze_seasonal_missingness(directory, value_column='value'):
     plt.ylabel('Average Percentage of Missing Values')
     plt.xticks(range(1, 13), ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
     plt.show()
+
+
+def save_loess_plots(directory, output_dir, frac=0.1, max_plots=None):
+    """
+    Apply LOESS smoothing to each river gauge CSV file in a directory and save the plots.
+
+    Parameters:
+    - directory: str, path to the directory containing river gauge CSV files.
+    - output_dir: str, path to the directory where the plots will be saved.
+    - frac: float, the fraction of data to use for LOESS smoothing. Default is 0.1.
+    - max_plots: int or None, maximum number of plots to generate. Set to None for all files.
+    """
+    
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+    
+    plot_count = 0
+    for filename in os.listdir(directory):
+        if filename.endswith('_raw.csv'):
+            file_path = os.path.join(directory, filename)
+            
+            # Load the data
+            df = pd.read_csv(file_path, parse_dates=['time'], index_col='time')
+            
+            # Ensure data is resampled to fill missing timestamps at 15min intervals
+            df = df.asfreq('15min')
+            
+            # Check if 'value' column exists
+            if 'value' not in df.columns:
+                print(f"Column 'value' not found in {filename}")
+                continue
+            
+            # Apply LOESS smoothing to the 'value' column
+            df['value'] = df['value'].interpolate(method='linear')  # Interpolate to handle NaNs
+            loess_smoothed = lowess(df['value'].values, np.arange(len(df)), frac=frac, return_sorted=False)
+
+            # Plot and save as a .png file
+            plt.figure(figsize=(12, 6))
+            plt.plot(df.index, df['value'], label='Original Data', color='blue', alpha=0.6)
+            plt.plot(df.index, loess_smoothed, label='LOESS Smoothed', color='red', linewidth=2)
+            plt.title(f"LOESS Smoothing for {filename}")
+            plt.xlabel("Time")
+            plt.ylabel("River Gauge Value")
+            plt.legend()
+            
+            # Save the plot
+            output_path = os.path.join(output_dir, f"{filename}_loess_plot.png")
+            plt.savefig(output_path)
+            plt.close()  # Close the plot to free memory
+            plot_count += 1
+            print(f"Plot saved for {filename} at {output_path}")
+            
+            # Limit the number of plots (optional)
+            if max_plots and plot_count >= max_plots:
+                print(f"Stopped after generating {max_plots} plots.")
+                break
+
             
 
 
