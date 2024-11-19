@@ -109,7 +109,7 @@ def get_file_pairs(river_dir, weather_dir, as_dataframes=False):
                 file_pairs[river_filename] = {'river_data': river_path, 'weather_data': matched_weather_file}
 
     return file_pairs
-import numpy as np
+
 
 def ridiculous_values_river(df, remove_ridiculous=False):
     """Identifies and optionally removes clearly erroneous values (e.g., negative values) in river gauge data."""
@@ -298,8 +298,7 @@ def detect_frequency_in_directory(directory_path: str, output_path: str):
         errors_df.to_csv(errors_output_path, index=False)
         print(f"Errors saved to {errors_output_path}")
 
-import numpy as np
-import pandas as pd
+# TODO: have to alter clean_river_csv to replace NaNs with seasonally imputed values
 
 def clean_river_csv(path: str, downsample_to_hourly=False, aggregation_method='mean', calculate_missing_measurements=True) -> pd.DataFrame:
     print(f"\nProcessing file: {path}")
