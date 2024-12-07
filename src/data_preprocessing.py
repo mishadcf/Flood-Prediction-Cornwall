@@ -40,10 +40,10 @@ def load_all_river_gauge_csvs(data_dir ='data/river_data'):
     return river_gauge_data
 
 
-def load_all_weather_station_csvs(data_dir = 'data/weather_data'):
+def load_all_weather_station_csvs(data_dir='data/weather_data'):
     """
     Load all weather station CSV files in the specified directory.
-    Assumes filenames are in the format: <name>_<ID>_nearest_weather_station_openmeteo.csv.
+    Assumes filenames are in the format: <name>_<ID>_nearest_weather_station_raw.csv.
 
     Parameters:
         data_dir (str): Directory containing weather station CSV files.
@@ -53,8 +53,8 @@ def load_all_weather_station_csvs(data_dir = 'data/weather_data'):
     """
     weather_station_data = {}
     for filename in os.listdir(data_dir):
-        if filename.endswith("_nearest_weather_station_openmeteo.csv"):
-            match = re.match(r"(.+?)_(\d+)_nearest_weather_station_openmeteo\.csv", filename)
+        if filename.endswith("_nearest_weather_station_raw.csv"):
+            match = re.match(r"(.+?)_(\d+)_nearest_weather_station_raw\.csv", filename)
             if match:
                 station_name = match.group(1)
                 station_id = match.group(2)
@@ -62,6 +62,7 @@ def load_all_weather_station_csvs(data_dir = 'data/weather_data'):
                 file_path = os.path.join(data_dir, filename)
                 weather_station_data[full_station_name] = pd.read_csv(file_path)
     return weather_station_data
+
 
 def get_file_pairs(river_dir, weather_dir, as_dataframes=False):
     
