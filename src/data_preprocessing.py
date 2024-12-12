@@ -479,3 +479,35 @@ def clean_weather_df(df, return_metadata=False):
     return (df, metadata) if return_metadata else df
 
 
+
+def seasonal_impute(df: pd.DataFrame, column: str = 'value') -> pd.DataFrame:
+    """
+    Impute missing values based on seasonal (monthly) averages.
+    
+    Args:
+        df (pd.DataFrame): DataFrame with a datetime index and a column to impute.
+        column (str): Name of the column containing the values to impute.
+        
+    Returns:
+        pd.DataFrame: DataFrame with missing values imputed seasonally.
+    """
+    if column not in df.columns:
+        raise ValueError(f"Column '{column}' not found in DataFrame.")
+    
+    if df.index.freq is None:
+        df = df.asfreq('15min')  # Ensure uniform frequency
+
+    # Calculate monthly averages
+    monthly_averages = df.groupby(df.index.month)[column].mean()
+
+    # Define a helper function to impute using monthly averages
+    def impute(row):
+        if pd.isna(row[column]):
+            return monthly_averages[row.name.month]
+        return row[column]
+
+    # Apply the imputation function
+    df[column] = df.apply(impute, axis=1)
+    return df
+
+
