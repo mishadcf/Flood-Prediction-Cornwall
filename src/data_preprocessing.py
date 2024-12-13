@@ -511,3 +511,61 @@ def seasonal_impute(df: pd.DataFrame, column: str = 'value') -> pd.DataFrame:
     return df
 
 
+def scan_missing_blocks(directory, column="value", freq="15min"):
+    """
+    Scan a directory of river gauge CSV files for consecutive missing blocks of time
+    and generate a report.
+
+    Args:
+        directory (str): Path to the directory containing the CSV files.
+        column (str): Name of the column to check for missing values.
+        freq (str): Frequency for resampling the time series (default: '15min').
+
+    Returns:
+        pd.DataFrame: Report summarizing missing blocks for each file.
+    """
+    report = []
+
+    for filename in os.listdir(directory):
+        if filename.endswith(".csv"):
+            filepath = os.path.join(directory, filename)
+            df = pd.read_csv(filepath)
+
+            # Ensure 'time' column is datetime and set as index
+            df['time'] = pd.to_datetime(df['time'])
+            df.set_index('time', inplace=True)
+
+            # Resample to ensure uniform frequency and introduce NaNs for missing rows
+            df = df.asfreq(freq)
+
+            # Identify missing blocks
+            missing = df[column].isna()
+            missing_blocks = missing.ne(missing.shift()).cumsum()[missing]
+
+            for block_id, block in missing_blocks.groupby(missing_blocks):
+                start_time = block.index.min()
+                end_time = block.index.max()
+                duration = end_time - start_time
+
+                report.append({
+                    "Filename": filename,
+                    "Start Time": start_time,
+                    "End Time": end_time,
+                    "Duration (days)": duration.total_seconds() / (60 * 60 * 24)
+                })
+
+    # Create a DataFrame from the report
+    report_df = pd.DataFrame(report)
+    return report_df
+
+# Directory containing river gauge CSVs
+directory = "path_to_your_directory"
+
+# Generate the missing blocks report
+missing_report = scan_missing_blocks(directory)
+
+# Save the report to a CSV
+missing_report.to_csv("missing_blocks_report.csv", index=False)
+
+# Display the report
+print(missing_report)
