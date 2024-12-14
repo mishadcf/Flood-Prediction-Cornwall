@@ -558,14 +558,3 @@ def scan_missing_blocks(directory, column="value", freq="15min"):
     report_df = pd.DataFrame(report)
     return report_df
 
-# Directory containing river gauge CSVs
-directory = "path_to_your_directory"
-
-# Generate the missing blocks report
-missing_report = scan_missing_blocks(directory)
-
-# Save the report to a CSV
-missing_report.to_csv("missing_blocks_report.csv", index=False)
-
-# Display the report
-print(missing_report)
