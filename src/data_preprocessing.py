@@ -212,7 +212,7 @@ def concat_all_river_gauges(river_directory="data/river_data"):
 
 
 
-def remove_negative_river_levels(df):
+def process_negative_river_levels(df):
     df['value'] =  df['value'].apply(lambda x : np.nan if x<0 else x)
     return df
 
@@ -372,6 +372,44 @@ def clean_river_csv(path: str, downsample_to_hourly=False, aggregation_method='m
         return original_df, df_hourly
     
     return original_df, df_15min
+
+def process_river(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Takes in a river gauge time series with a time index. Returns a DataFrame 
+    resulting from:
+    - Replacing negative values with NaN
+    - Removing outliers (values beyond mean ± 10*std) by setting them to NaN
+    - Resampling to 15min frequency to reveal missing rows
+    - Seasonally imputing missing values based on monthly-hourly averages
+    """
+    
+    # Ensure the index is datetime
+    if not isinstance(df.index, pd.DatetimeIndex):
+        df.index = pd.to_datetime(df.index)
+
+    # Step 1: Remove negative values
+    df = process_negative_river_levels(df)
+
+    # Step 2: Remove extreme outliers
+    mean = df['value'].mean()
+    sd = df['value'].std()
+    errors_condition = (df['value'] > mean + 10.0 * sd) | (df['value'] < mean - 10.0 * sd)
+    df.loc[errors_condition, 'value'] = np.nan
+
+    # Step 3: Resample to 15min intervals
+    df_15min = df.asfreq('15min')
+
+    # Check how many values are missing after resampling
+    print('Number of missing values after resampling at 15min:\n', df_15min.isnull().sum())
+
+    # Step 4: Seasonal imputation
+    df_15min = seasonal_impute(df_15min, column='value')
+
+    # Check how many values remain missing after imputation
+    print('Number of missing values after seasonal impute:\n', df_15min['value'].isnull().sum())
+
+    return df_15min
+    
 
 
 def extract_time_features(df):
