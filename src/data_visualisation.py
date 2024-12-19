@@ -4,7 +4,6 @@ import pandas as pd
 import os
 from statsmodels.nonparametric.smoothers_lowess import lowess
 
-
 if __name__ == '__main__':
     pass
 
@@ -268,6 +267,87 @@ def save_loess_plots(directory, output_dir, frac=0.1, max_plots=None):
                 print(f"Stopped after generating {max_plots} plots.")
                 break
 
-            
+  
+def process_and_plot_csvs(cleaned_dir="data/river_data/highest_granularity/cleaned"):
+    """
+    The function `process_and_plot_csvs` reads cleaned CSV files, identifies outliers and negative
+    values, and plots the data with outliers highlighted in red and threshold lines.
+
+    :param cleaned_dir: The `cleaned_dir` parameter in the `process_and_plot_csvs` function is the
+    directory path where the cleaned CSV files are located. This function reads each CSV file in the
+    specified directory, processes the data, identifies outliers, checks for negative values, and then
+    plots the data along with outliers, defaults to data/river_data/highest_granularity/cleaned
+    (optional)
+    """
+
+    # Create a list of all CSV files in the directory
+    csv_files = [f for f in os.listdir(cleaned_dir) if f.endswith(".csv")]
+
+    for csv_file in csv_files:
+        file_path = os.path.join(cleaned_dir, csv_file)
+        print(f"\nProcessing: {file_path}")
+
+        # Read the cleaned CSV
+        df = pd.read_csv(file_path, parse_dates=['time'], index_col='time')
+
+        # Check that 'value' column exists
+        if 'value' not in df.columns:
+            print(f"Warning: 'value' column not found in {csv_file}. Skipping...")
+            continue
+
+        # Compute mean and std
+        mean_val = df['value'].mean()
+        std_val = df['value'].std()
+
+        # Calculate thresholds for outliers
+        threshold_upper = mean_val + 10 * std_val
+        threshold_lower = mean_val - 10 * std_val
+
+        # Identify outliers
+        outliers = df[(df['value'] > threshold_upper) | (df['value'] < threshold_lower)]
+        num_outliers = len(outliers)
+
+        # Check for negative values
+        negative_values = df[df['value'] < 0]
+        num_negative = len(negative_values)
+
+        # Print summary
+        print(f"Mean: {mean_val:.2f}, Std: {std_val:.2f}")
+        print(f"Thresholds: Lower = {threshold_lower:.2f}, Upper = {threshold_upper:.2f}")
+        print(f"Outliers beyond thresholds: {num_outliers}")
+        if num_outliers > 0:
+            print("Outlier timestamps and values:")
+            print(outliers[['value']].head(10))  # print first 10 outliers for inspection
+
+        if num_negative > 0:
+            print(f"Warning: {num_negative} values are negative. Example:")
+            print(negative_values[['value']].head(10))
+        else:
+            print("No negative values found.")
+
+        # Plot the data
+        plt.figure(figsize=(12, 6))
+        plt.plot(df.index, df['value'], label='Value', color='blue')
+
+        # Highlight outliers in red
+        if num_outliers > 0:
+            plt.scatter(outliers.index, outliers['value'], color='red', label='Outliers')
+
+        # Add horizontal lines at thresholds
+        plt.axhline(y=threshold_upper, color='orange', linestyle='--', label='Upper Threshold')
+        plt.axhline(y=threshold_lower, color='green', linestyle='--', label='Lower Threshold')
+
+        plt.title(f"{csv_file}: Value over Time")
+        plt.xlabel("Time")
+        plt.ylabel("Value")
+        plt.legend()
+        plt.tight_layout()
+
+        # Uncomment to save plots instead of showing
+        # plot_filename = f"{csv_file.replace('.csv', '')}_check.png"
+        # plt.savefig(os.path.join("check_plots", plot_filename))
+
+        plt.show()
+        plt.close()            
 
 
