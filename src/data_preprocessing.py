@@ -596,3 +596,112 @@ def scan_missing_blocks(directory, column="value", freq="15min"):
     report_df = pd.DataFrame(report)
     return report_df
 
+def smart_linear_interpolate(df: pd.DataFrame, column: str = 'value', z_thresh: float = 10.0) -> pd.DataFrame:
+    """
+    Interpolate missing values linearly only if neighboring values are reasonable.
+    
+    'Reasonable' means both the left and right neighbors are within mean ± z_thresh * std.
+    This ensures we only interpolate where the context suggests continuity.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with a datetime index and a column containing the measurement.
+    column : str
+        The name of the column with values to interpolate.
+    z_thresh : float
+        The z-score threshold relative to mean and std to consider a neighbor "reasonable".
+    
+    Returns
+    -------
+    pd.DataFrame
+        A copy of the input DataFrame with eligible missing values linearly interpolated.
+    """
+    df = df.copy()
+    mean_val = df[column].mean()
+    sd_val = df[column].std()
+
+    def is_reasonable(val):
+        if pd.isna(val):
+            return False
+        return (mean_val - z_thresh * sd_val <= val <= mean_val + z_thresh * sd_val)
+
+    # Identify missing segments
+    is_null = df[column].isnull()
+    start = None
+    segments = []
+    for i in range(len(df)):
+        if is_null.iloc[i]:
+            if start is None:
+                start = i
+        else:
+            if start is not None:
+                segments.append((start, i - 1))
+                start = None
+    if start is not None:
+        # If missing values run till the end
+        segments.append((start, len(df)-1))
+
+    for seg_start, seg_end in segments:
+        left_idx = seg_start - 1 if seg_start > 0 else None
+        right_idx = seg_end + 1 if seg_end < len(df)-1 else None
+
+        interpolate_this_segment = True
+
+        # Check left neighbor
+        if left_idx is None or not is_reasonable(df.iloc[left_idx][column]):
+            interpolate_this_segment = False
+
+        # Check right neighbor
+        if right_idx is None or not is_reasonable(df.iloc[right_idx][column]):
+            interpolate_this_segment = False
+
+        if interpolate_this_segment:
+            df[column].iloc[seg_start:seg_end+1] = df[column].iloc[seg_start:seg_end+1].interpolate(method='linear', limit_direction='both')
+
+    return df
+
+def clean_river_data_step1(file_path: str, output_dir: str, z_thresh: float = 10.0):
+    """
+    Step 1 Cleaning:
+    - Removes negative values
+    - Removes extreme outliers (values > mean ± 10*std)
+    - Applies 'smart' interpolation to fill missing values from the above steps
+    
+    This does NOT resample or handle missing rows from resampling (that's for step 2).
+    Saves the cleaned DataFrame to output_dir as *_cleaned_step1.csv.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the raw CSV file containing the river data.
+    output_dir : str
+        Directory where the cleaned_step1 file will be saved.
+    z_thresh : float
+        Threshold for identifying reasonable neighbors during smart interpolation.
+    """
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    df = pd.read_csv(file_path, parse_dates=['time'], index_col='time')
+
+    # Remove negative values
+    df.loc[df['value'] < 0, 'value'] = np.nan
+
+    # Remove extreme outliers
+    mean_val = df['value'].mean()
+    sd_val = df['value'].std()
+    upper_bound = mean_val + 10 * sd_val
+    lower_bound = mean_val - 10 * sd_val
+    df.loc[(df['value'] > upper_bound) | (df['value'] < lower_bound), 'value'] = np.nan
+
+    # Apply smart interpolation to fill missing values
+    df = smart_linear_interpolate(df, column='value', z_thresh=z_thresh)
+
+    # Save the cleaned (step 1) file
+    filename = os.path.basename(file_path)
+    cleaned_filename = filename.replace('_raw.csv', '_cleaned_step1.csv')
+    cleaned_path = os.path.join(output_dir, cleaned_filename)
+    df.to_csv(cleaned_path)
+    print(f"Step 1 cleaning complete. Saved cleaned file to: {cleaned_path}")
+
