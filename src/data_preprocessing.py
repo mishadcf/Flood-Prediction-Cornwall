@@ -21,7 +21,7 @@ if __name__ == '__main__':
 def load_all_river_gauge_csvs(data_dir ='data/river_data'):
     """
     Load all river gauge CSV files in the specified directory.
-    Assumes filenames are in the format: station_<ID>_clean.csv.
+    Assumes filenames are in the format: station_<ID>_raw.csv.
 
     Parameters:
         data_dir (str): Directory containing river gauge CSV files.
@@ -31,7 +31,7 @@ def load_all_river_gauge_csvs(data_dir ='data/river_data'):
     """
     river_gauge_data = {}
     for filename in os.listdir(data_dir):
-        if filename.endswith("_raw.csv"):
+        if filename.endswith(".csv") and "station" in filename:
             match = re.match(r"station_(\d+)_raw\.csv", filename)
             if match:
                 station_id = f"station_{match.group(1)}"
