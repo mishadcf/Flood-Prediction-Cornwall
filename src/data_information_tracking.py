@@ -20,14 +20,12 @@ import pandas as pd
 import numpy as np
 import os
 import json
+import glob
 
 river_data_station_info = 'data/river_data/station_info.csv'
 river_data_raw_dir = 'data/river_data/highest_granularity/'
 river_data_s1_dir = 'data/river_data/highest_granularity/cleaned/'
 river_data_s1_plots_dir = 'data/river_data/highest_granularity/cleaned/plots/'
-
-
-
 
 
 def build_station_data_dict(csv_path: str) -> pd.DataFrame:
@@ -152,3 +150,110 @@ def build_station_data_dict(csv_path: str) -> pd.DataFrame:
 
     df_parsed = pd.DataFrame(parsed_rows)
     return df_parsed
+
+
+def bulk_eda_river_gauge_data(
+    directory: str,
+    pattern: str = "*.csv",
+    datetime_col: str = "time",
+    value_col: str = "value",
+    freq: str = "15Min"
+) -> pd.DataFrame:
+    """
+    Scans a directory for river gauge data files and generates metadata 
+    with summary stats, negative values count, and missing-data details
+    after resampling at 15-minute frequency.
+
+    Parameters
+    ----------
+    directory : str
+        The directory containing the river gauge data files.
+    pattern : str, optional
+        The glob pattern to match data files (default is '*.csv').
+    datetime_col : str, optional
+        The name of the column that contains the datetime (default is 'time').
+    value_col : str, optional
+        The name of the column containing the gauge values (default is 'value').
+    freq : str, optional
+        The frequency for resampling (default is '15Min').
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame with EDA metadata for each file.
+    """
+
+    # Prepare a list to hold metadata for each file
+    metadata_records = []
+
+    # Use glob to match files with the given pattern
+    file_paths = glob.glob(os.path.join(directory, pattern))
+
+    for file_path in file_paths:
+        try:
+            # Read the data (adjust parse_dates, etc. as needed)
+            df = pd.read_csv(file_path, parse_dates=[datetime_col])
+
+            # Sort by datetime just in case it's not sorted
+            df.sort_values(by=datetime_col, inplace=True)
+
+            # Basic info about the raw data
+            file_name = os.path.basename(file_path)
+            nrows_raw = len(df)
+
+            # Basic summary stats on the raw data
+            mean_val = df[value_col].mean()
+            median_val = df[value_col].median()
+            std_val = df[value_col].std()
+            min_val = df[value_col].min()
+            max_val = df[value_col].max()
+
+            # Count negative values
+            negative_count = (df[value_col] < 0).sum()
+
+            # Count missing values in the raw data
+            missing_count_raw = df[value_col].isna().sum()
+            missing_percent_raw = (missing_count_raw / nrows_raw) * 100 if nrows_raw > 0 else 0
+
+            # -----------------------------------
+            # Resample at the specified frequency
+            # -----------------------------------
+            # First set datetime as index
+            df.set_index(datetime_col, inplace=True)
+
+            # Using .asfreq() or .resample().asfreq() 
+            # (choose one approach; .asfreq() is shorter if no aggregation needed)
+            df_15m = df.asfreq(freq=freq)
+
+            # Count missing values after resampling
+            nrows_15m = len(df_15m)
+            missing_count_15m = df_15m[value_col].isna().sum()
+            missing_percent_15m = (missing_count_15m / nrows_15m) * 100 if nrows_15m > 0 else 0
+
+            # Build a record (row) of metadata
+            record = {
+                "file_name": file_name,
+                "rows_raw": nrows_raw,
+                "mean_raw": mean_val,
+                "median_raw": median_val,
+                "std_raw": std_val,
+                "min_raw": min_val,
+                "max_raw": max_val,
+                "negative_count": negative_count,
+                "missing_count_raw": missing_count_raw,
+                "missing_percent_raw": missing_percent_raw,
+                "rows_after_resample": nrows_15m,
+                "missing_count_15m": missing_count_15m,
+                "missing_percent_15m": missing_percent_15m
+            }
+
+            metadata_records.append(record)
+
+        except Exception as e:
+            print(f"Error processing file {file_path}: {e}")
+            # Optionally, you could collect an "error row" in metadata_records if desired
+    
+    # Convert records to a DataFrame
+    metadata_df = pd.DataFrame(metadata_records)
+    
+    return metadata_df
