@@ -349,5 +349,174 @@ def process_and_plot_csvs(cleaned_dir="data/river_data/highest_granularity/clean
 
         plt.show()
         plt.close()            
+        
+        
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from statsmodels.tsa.seasonal import seasonal_decompose
+from scipy.stats import skew, zscore
+
+def river_gauge_eda(df, 
+                    time_col='datetime', 
+                    level_col='water_level', 
+                    anomaly_method='zscore', 
+                    z_thresh=3,
+                    seasonality_period='year'):
+    """
+    Perform EDA on a single gauge's time series data with fixed 15-minute frequency
+    and annual seasonal decomposition.
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing time series data with at least two columns:
+        1) A datetime column (time_col).
+        2) A water level column (level_col).
+        
+    time_col : str
+        Name of the datetime column in df.
+    
+    level_col : str
+        Name of the gauge level column in df.
+    
+    anomaly_method : str
+        Method to detect anomalies. Options: 'zscore' or 'iqr'.
+    
+    z_thresh : float
+        Threshold for z-score based outlier detection. E.g., 3 means detect points > 3 std dev away.
+    
+    seasonality_period : str
+        The seasonal period for decomposition. Options:
+            - 'year': Annual seasonality
+            - 'week': Weekly seasonality
+            - 'day': Daily seasonality
+        Default is 'year'.
+    
+    Returns
+    -------
+    dict
+        A dictionary of results containing:
+          - 'summary_stats': basic stats of the water level
+          - 'missing_values': total missing values
+          - 'negative_values': total negative values (if any)
+          - 'skewness': skew of the distribution
+          - 'outliers': index of detected outliers
+          - 'seasonality_plots': decomposition plots (if successful)
+          - 'figures': dictionary of figures/axes references for further usage
+    """
+    
+    # ---- 1. Ensure datetime format and sort ---------------------------------
+    df = df.copy()
+    df[time_col] = pd.to_datetime(df[time_col], errors='coerce')  # Force datetime
+    df.sort_values(by=time_col, inplace=True)
+    df.set_index(time_col, inplace=True)
+    
+    # ---- 2. Align to 15-Minute Frequency and Detect Missing Intervals -------
+    freq = '15T'  # Fixed to 15-minute frequency
+    df_aligned = df.asfreq(freq)
+    total_missing = df_aligned[level_col].isnull().sum()
+    
+    # ---- 3. Handle Duplicates by Resampling with Mean ----------------------
+    # Resampling ensures that any duplicate entries within the same 15-minute interval are averaged
+    df_resampled = df_aligned.resample(freq).mean()
+    
+    # ---- 4. Basic Summary Statistics ----------------------------------------
+    summary_stats = df_resampled[level_col].describe()
+    total_negative = (df_resampled[level_col] < 0).sum()
+    data_skewness = skew(df_resampled[level_col].dropna())
+    
+    # ---- 5. Plot the Raw Time Series ---------------------------------------
+    fig_time, ax_time = plt.subplots(figsize=(15, 5))
+    ax_time.plot(df_resampled.index, df_resampled[level_col], label='River Gauge Level')
+    ax_time.set_title("Time Series of River Gauge Level", fontsize=14)
+    ax_time.set_xlabel("Time", fontsize=12)
+    ax_time.set_ylabel("Water Level", fontsize=12)
+    ax_time.legend()
+    plt.tight_layout()
+    
+    # ---- 6. Distribution and Boxplot ---------------------------------------
+    fig_dist, ax_dist = plt.subplots(1, 2, figsize=(15, 5))
+    
+    # Histogram with KDE
+    sns.histplot(df_resampled[level_col], kde=True, ax=ax_dist[0], color='skyblue')
+    ax_dist[0].set_title("Distribution of Water Levels", fontsize=14)
+    ax_dist[0].set_xlabel("Water Level", fontsize=12)
+    
+    # Boxplot
+    sns.boxplot(y=df_resampled[level_col], ax=ax_dist[1], color='lightgreen')
+    ax_dist[1].set_title("Boxplot of Water Levels", fontsize=14)
+    ax_dist[1].set_ylabel("Water Level", fontsize=12)
+    
+    plt.tight_layout()
+    
+    # ---- 7. Detect Outliers ------------------------------------------------
+    outliers = []
+    
+    if anomaly_method == 'zscore':
+        # Z-score method
+        zscores = np.abs(zscore(df_resampled[level_col].dropna()))
+        outlier_indices = df_resampled[level_col].dropna().index[zscores > z_thresh]
+        outliers = outlier_indices.tolist()
+    
+    elif anomaly_method == 'iqr':
+        # IQR method
+        Q1 = df_resampled[level_col].quantile(0.25)
+        Q3 = df_resampled[level_col].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        outlier_indices = df_resampled[(df_resampled[level_col] < lower_bound) | 
+                                       (df_resampled[level_col] > upper_bound)].index
+        outliers = outlier_indices.tolist()
+    
+    # ---- 8. Seasonal Decomposition -----------------------------------------
+    decomposition_plots = None
+    try:
+        # Fill missing data via interpolation
+        df_decomp = df_resampled[level_col].interpolate(method='time').ffill().bfill()
+        
+        # Define seasonal period based on desired seasonality
+        if seasonality_period == 'year':
+            # Number of 15-minute intervals in a year
+            period = 96 * 365  # 96 intervals/day * 365 days
+        elif seasonality_period == 'week':
+            period = 96 * 7  # Weekly seasonality
+        elif seasonality_period == 'day':
+            period = 96  # Daily seasonality
+        else:
+            raise ValueError("Invalid 'seasonality_period'. Choose from 'year', 'week', or 'day'.")
+        
+        # Perform seasonal decomposition
+        decomposition = seasonal_decompose(df_decomp, model='additive', period=period)
+        
+        # Plot decomposition
+        fig_decomp = decomposition.plot()
+        fig_decomp.set_size_inches(15, 10)
+        fig_decomp.suptitle("Seasonal Decomposition of River Gauge Levels", fontsize=16)
+        plt.tight_layout()
+        
+        decomposition_plots = fig_decomp
+    
+    except Exception as e:
+        print(f"Seasonal decomposition failed: {e}")
+    
+    # ---- 9. Return Results -------------------------------------------------
+    results = {
+        'summary_stats': summary_stats,
+        'missing_values': total_missing,
+        'negative_values': total_negative,
+        'skewness': data_skewness,
+        'outliers': outliers,
+        'seasonality_plots': decomposition_plots,
+        'figures': {
+            'time_series_plot': (fig_time, ax_time),
+            'distribution_plots': (fig_dist, ax_dist)
+        }
+    }
+    
+    return results
+
 
 
