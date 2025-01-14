@@ -7,6 +7,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -110,6 +112,23 @@ def train_random_forest(df: pd.DataFrame, target: str, random_state: int = 42):
     print(f"Random Forest Validation MAE: {mae:.4f}")
     
     return rf, X.columns.tolist()
+
+
+def calculate_vif(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calculates Variance Inflation Factor (VIF) for each feature in the DataFrame.
+    
+    Parameters:
+    - df (pd.DataFrame): DataFrame containing features.
+    
+    Returns:
+    - pd.DataFrame: DataFrame with features and their corresponding VIF.
+    """
+    vif_data = pd.DataFrame()
+    vif_data['feature'] = df.columns
+    vif_data['VIF'] = [variance_inflation_factor(df.values, i) 
+                       for i in range(len(df.columns))]
+    return vif_data
 
 
 def main_feature_selection(df: pd.DataFrame, target: str, output_dir: str = '../reports/figures/'):
