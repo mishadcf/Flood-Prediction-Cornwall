@@ -74,7 +74,7 @@ Ultimately, I’m showcasing a full pipeline that **ingests real-time weather fo
 
 ## Feature Engineering & EDA
 
-![Feature Correlations Heatmap](image-7.png)  
+![Feature Correlations Heatmap](assets/image-7.png)  
 
 
 - Merged hourly river gauge data with weather features into a single DataFrame.  
