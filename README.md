@@ -93,7 +93,7 @@ Ultimately, I’m showcasing a full pipeline that **ingests real-time weather fo
 2. **Random Forest Regressor**:  
    - Provided initial non-linear improvements.  
    - Important for **feature importance** insights (e.g., top features are lagged water levels).
-
+![Feature Correlations Heatmap](assets/image-10.png)  
 ### Next Steps in Modeling
 1. **Other Tree-Based Models**:  
    - **XGBoost**, **CatBoost** for improved performance and interpretability.  
