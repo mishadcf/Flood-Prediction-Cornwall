@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 from statsmodels.stats.outliers_influence import variance_inflation_factor
+import shap
 
 import warnings
 warnings.filterwarnings('ignore')

@@ -22,7 +22,7 @@ import os
 import json
 import glob
 
-river_data_station_info = 'data/river_data/station_info.csv'
+river_data_station_info = 'data/river_data/river_station_info_cornwall_api_response.csv'
 river_data_raw_dir = 'data/river_data/highest_granularity/'
 river_data_s1_dir = 'data/river_data/highest_granularity/cleaned/'
 river_data_s1_plots_dir = 'data/river_data/highest_granularity/cleaned/plots/'
@@ -155,7 +155,7 @@ def build_station_data_dict(csv_path: str) -> pd.DataFrame:
 def bulk_eda_river_gauge_data(
     directory: str,
     pattern: str = "*.csv",
-    datetime_col: str = "time",
+    datetime_col: str = "datetime",
     value_col: str = "value",
     freq: str = "15Min"
 ) -> pd.DataFrame:
@@ -171,7 +171,7 @@ def bulk_eda_river_gauge_data(
     pattern : str, optional
         The glob pattern to match data files (default is '*.csv').
     datetime_col : str, optional
-        The name of the column that contains the datetime (default is 'time').
+        The name of the column that contains the datetime (default is 'datetime').
     value_col : str, optional
         The name of the column containing the gauge values (default is 'value').
     freq : str, optional
@@ -233,15 +233,15 @@ def bulk_eda_river_gauge_data(
             # Build a record (row) of metadata
             record = {
                 "file_name": file_name,
-                "rows_raw": nrows_raw,
-                "mean_raw": mean_val,
-                "median_raw": median_val,
-                "std_raw": std_val,
-                "min_raw": min_val,
-                "max_raw": max_val,
+                "rows_count": nrows_raw,
+                "mean": mean_val,
+                "median": median_val,
+                "std": std_val,
+                "min": min_val,
+                "max": max_val,
                 "negative_count": negative_count,
-                "missing_count_raw": missing_count_raw,
-                "missing_percent_raw": missing_percent_raw,
+                "missing_count_before_resample": missing_count_raw,
+                "missing_percent_before_resample": missing_percent_raw,
                 "rows_after_resample": nrows_15m,
                 "missing_count_15m": missing_count_15m,
                 "missing_percent_15m": missing_percent_15m
@@ -256,4 +256,83 @@ def bulk_eda_river_gauge_data(
     # Convert records to a DataFrame
     metadata_df = pd.DataFrame(metadata_records)
     
+    # Return the metadata DataFrame
     return metadata_df
+
+def run_data_quality_pipeline():
+    """
+    Orchestrates data quality control from raw to each cleaning step.
+    """
+    # 1. Parse station info
+    station_info_df = build_station_data_dict(river_data_station_info)
+    
+    # 2. EDA on RAW data
+    print("Running bulk EDA on RAW data...")
+    raw_metadata_df = bulk_eda_river_gauge_data(
+        directory=river_data_raw_dir,
+        pattern="*.csv",
+        datetime_col="time",  # or whatever your column is called
+        value_col="value",    # or your gauge column
+        freq="15Min"
+    )
+    raw_metadata_df["processing_step"] = "raw"  # label this metadata
+
+    # 3. EDA on Step 1 Cleaned data
+    print("Running bulk EDA on STEP 1 cleaned data...")
+    s1_metadata_df = bulk_eda_river_gauge_data(
+        directory=river_data_s1_dir,
+        pattern="*.csv",
+        datetime_col="time", 
+        value_col="value",
+        freq="15Min"
+    )
+    s1_metadata_df["processing_step"] = "step1"
+    
+    # (In the future, add more steps, e.g., step2, step3, etc.)
+    # e.g.:
+    # s2_metadata_df = bulk_eda_river_gauge_data(
+    #     directory=river_data_s2_dir,
+    #     ...
+    # )
+    # s2_metadata_df["processing_step"] = "step2"
+
+    # 4. Combine all metadata
+    # For example, we can just concatenate them (long format):
+    all_steps_metadata_df = pd.concat([raw_metadata_df, s1_metadata_df], ignore_index=True)
+    
+    # 5. Optionally merge with station_info_df
+    #    If each CSV is named something like "12345.csv" where "12345" is station_reference
+    #    you can parse that out and merge on station_reference. 
+    #    (Or if your file_name is already the station_reference, you can merge directly.)
+
+    # parse gauge ID from file_name if needed
+    all_steps_metadata_df["station_reference"] = all_steps_metadata_df["file_name"].apply(
+        lambda x: os.path.splitext(x)[0]  # remove .csv extension
+    )
+    
+    # Now you can do a left join on station_reference if it exists in station_info_df
+    # station_info_df might have a column "station_reference"
+    if "station_reference" in station_info_df.columns:
+        final_metadata_df = pd.merge(
+            all_steps_metadata_df, 
+            station_info_df, 
+            on="station_reference",  # adjust if your columns differ
+            how="left"
+        )
+    else:
+        # If no station_reference in station_info, keep it separate
+        final_metadata_df = all_steps_metadata_df.copy()
+
+    # 6. Save out or return
+    # Option A: Save to CSV
+    final_csv_path = os.path.join("data", "river_data", "metadata_pipeline.csv")
+    final_metadata_df.to_csv(final_csv_path, index=False)
+    print(f"Metadata saved to: {final_csv_path}")
+    
+    # Option B: return it for in-memory usage
+    return final_metadata_df
+
+
+if __name__ == "__main__":
+    df_metadata = run_data_quality_pipeline()
+    print(df_metadata.head())

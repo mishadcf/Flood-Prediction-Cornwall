@@ -1,0 +1,28 @@
+name: waterfall
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - pytorch
+  - numpy
+  - pandas
+  - matplotlib
+  - seaborn
+  - scikit-learn
+  - scipy
+  - geopandas
+  - rasterio
+  - folium
+  - plotly
+  - tqdm
+  - ipykernel
+  - pip
+  - pip:
+    - meteostat==1.6.8
+    - openmeteo-requests==1.3.0
+    - openmeteo-sdk==1.18.0
+    - shap==0.46.0
+    - great-tables==0.13.0
+    - missingno==0.5.2

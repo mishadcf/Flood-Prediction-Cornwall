@@ -1,0 +1,41 @@
+# Version control
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+
+# Data (if you have large datasets, consider excluding them)
+data/raw/
+*.csv
+*.parquet
+*.h5
+
+# Cache
+.cache*
+
+# Logs
+*.log
+
+# Local development
+docker-compose.override.yml

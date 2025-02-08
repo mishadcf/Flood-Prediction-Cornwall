@@ -3,6 +3,9 @@ import seaborn as sns
 import pandas as pd
 import os
 from statsmodels.nonparametric.smoothers_lowess import lowess
+from statsmodels.tsa.seasonal import seasonal_decompose
+from scipy.stats import skew, zscore
+import numpy as np
 
 if __name__ == '__main__':
     pass
@@ -351,12 +354,7 @@ def process_and_plot_csvs(cleaned_dir="data/river_data/highest_granularity/clean
         plt.close()            
         
         
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from statsmodels.tsa.seasonal import seasonal_decompose
-from scipy.stats import skew, zscore
+
 
 def river_gauge_eda(df, 
                     time_col='datetime', 

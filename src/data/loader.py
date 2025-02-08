@@ -15,9 +15,14 @@ class DataLoader:
             config: Dictionary containing data configuration
         """
         self.config = config
-        self.river_data_path = Path(config['data']['river_data_path'])
-        self.weather_data_path = Path(config['data']['weather_data_path'])
-        self.merged_data_path = Path(config['data']['merged_data_path'])
+        
+        # Get project root directory (assuming this file is in src/data/)
+        project_root = Path(__file__).parent.parent.parent
+        
+        # Convert relative paths to absolute paths
+        self.river_data_path = project_root / Path(config['data']['river_data_path'])
+        self.weather_data_path = project_root / Path(config['data']['weather_data_path'])
+        self.merged_data_path = project_root / Path(config['data']['merged_data_path'])
         
     def load_river_data(self, station_name: str) -> pd.DataFrame:
         """
@@ -27,7 +32,7 @@ class DataLoader:
             station_name: Name of the river gauge station (e.g., 'Boscastle-New-Mills')
             
         Returns:
-            DataFrame containing river gauge data
+            DataFrame containing river gauge data with numeric values and datetime index
         
         Raises:
             FileNotFoundError: If the station data file is not found
@@ -39,11 +44,24 @@ class DataLoader:
         if not file_path.exists():
             raise FileNotFoundError(f"No data file found for station: {station_name}")
             
-        # Read and process the data
+        # Read the data
         df = pd.read_csv(file_path)
+        
+        # Convert 'value' column to numeric, coercing errors to NaN
+        df['value'] = pd.to_numeric(df['value'], errors='coerce')
+        
+        # Convert datetime and set as index
         df['time'] = pd.to_datetime(df['dateTime'])
-        df = df.drop('dateTime', axis=1)
+        
+        # Keep only essential columns
+        df = df[['time', 'value']]
+        
+        # Set the time index
         df.set_index('time', inplace=True)
+        
+        # Sort index to ensure time series is ordered
+        df.sort_index(inplace=True)
+        
         return df
         
     def load_weather_data(self) -> pd.DataFrame:
