@@ -1,7 +1,3 @@
-
-
-
-
 # **Cornwall Flood Prediction Project**  
 _Using machine learning to predict river levels in real-time and mitigate flood risks_
 
@@ -36,7 +32,7 @@ Ultimately, I’m showcasing a full pipeline that **ingests real-time weather fo
 7. [Current Status & Roadmap](#current-status--roadmap)  
 8. [Contact & Acknowledgments](#contact--acknowledgments)  
 
-
+---
 
 ## Data Sources & Collection
 
@@ -110,24 +106,88 @@ Ultimately, I’m showcasing a full pipeline that **ingests real-time weather fo
 ## Repository Structure
 
 ```bash
-├── data/                   
-│   ├── raw/                # Unprocessed, original data
-│   ├── processed/          # Cleaned and prepped data
-│   └── external/           # Additional reference data (metadata, shapefiles, etc.)
-├── notebooks/              # Jupyter notebooks for EDA, prototyping models
-├── src/                    
-│   ├── data_collection.py  # Shoothill Gaugemap & Open-Meteo data collection
-│   ├── data_preprocessing.py
-│   ├── feature_engineering.py
-│   ├── feature_selection.py
-│   ├── data_visualisation.py
-│   ├── data_information_tracking.py
-│   └── ...                 # Other scripts
-├── tests/                  # Unit tests for code in src
-├── assets/                 # Images/plots for README and documentation
-├── .gitignore
-├── requirements.txt
-└── README.md               # You're here!
+flood-prediction/
+├── data/               # Data files
+├── notebooks/          # Jupyter notebooks for analysis
+├── src/               # Source code
+│   ├── data/          # Data processing scripts
+│   ├── features/      # Feature engineering
+│   ├── models/        # ML models
+│   └── visualization/ # Plotting utilities
+├── tests/             # Unit tests
+├── Dockerfile         # Container definition
+├── docker-compose.yml # Development setup
+└── environment.yml    # Dependencies
+```
+
+## Development Setup
+
+### Using Docker (Recommended)
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/flood-prediction.git
+   cd flood-prediction
+   ```
+
+2. Start the development environment:
+   ```bash
+   docker-compose up
+   ```
+
+3. Access Jupyter Lab at `http://localhost:8888` (token will be shown in console)
+
+### Local Development
+
+1. Create the conda environment:
+   ```bash
+   conda env create -f environment.yml
+   conda activate waterfall
+   ```
+
+2. Set up pre-commit hooks (optional):
+   ```bash
+   pre-commit install
+   ```
+
+## Deployment
+
+### Development
+- Use `docker-compose` for local development
+- Changes in local files are reflected immediately in the container
+- Jupyter Lab available at `localhost:8888`
+
+### Production (Planned)
+- CI/CD pipeline with GitHub Actions
+- Model serving via FastAPI
+- Deployment to cloud platform (AWS/GCP)
+- Monitoring with MLflow
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+## Current Status & Roadmap
+
+- **Current Status**: 🚧 In Progress
+- **Roadmap**:
+  - Complete model development and evaluation
+  - Deploy model to cloud platform
+  - Implement monitoring and maintenance
+
+---
+
+## Contact & Acknowledgments
 
 **Author**: Misha  
 **Project Status**: 🚧 In Progress  
