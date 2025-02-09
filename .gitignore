@@ -22,7 +22,8 @@ wheels/
 
 # Jupyter Notebook
 .ipynb_checkpoints
-*.ipynb
+notebooks/*.ipynb
+!notebooks/examples/*.ipynb  # Allow example notebooks
 
 # VSCode
 .vscode/
