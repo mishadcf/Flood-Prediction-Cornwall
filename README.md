@@ -84,11 +84,13 @@ Ultimately, I’m showcasing a full pipeline that **ingests real-time weather fo
 ## Model Development
 
 ### Baseline Models
-1. **Linear Regression**:  
-   - Quick baseline; discovered weak linear patterns with weather lags but strong correlation with **lagged river level**.
+1. **ARIMA (AutoRegressive Integrated Moving Average)**:
+   - Chosen as primary baseline model for all river gauges
+   - Captures temporal dependencies and seasonality in river level data
+   - Provides strong univariate forecasting benchmark before adding weather variables
 2. **Random Forest Regressor**:  
-   - Provided initial non-linear improvements.  
-   - Important for **feature importance** insights (e.g., top features are lagged water levels).
+   - Provided initial non-linear improvements
+   - Important for **feature importance** insights (e.g., top features are lagged water levels)
 ![Feature Correlations Heatmap](assets/image-10.png)  
 ### Next Steps in Modeling
 1. **Other Tree-Based Models**:  
