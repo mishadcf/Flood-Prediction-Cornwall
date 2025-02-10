@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  flood-prediction:
+    build: .
+    volumes:
+      # Mount your code for development
+      - .:/app
+      # Preserve Jupyter notebook history
+      - ./.jupyter:/root/.jupyter
+    ports:
+      # For Jupyter notebook/lab
+      - "8888:8888"
+      # For potential API/dashboard
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      # Add any other environment variables you need
+    # Override the CMD to start Jupyter for development
+    command: conda run -n waterfall jupyter lab --ip 0.0.0.0 --port 8888 --no-browser --allow-root
